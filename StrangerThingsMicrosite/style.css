@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #080608;
   --bg-soft: #15080b;
   --red: #c80e19;
@@ -262,7 +262,8 @@ main {
 }
 
 .panel-ar {
-  --ar-stage-max: 900px;
+  --ar-stage-max: 620px;
+  --ar-stage-aspect: 1280 / 1897;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -301,8 +302,8 @@ main {
 
 .ar-stage {
   position: relative;
-  width: min(var(--ar-stage-max), 100%);
-  aspect-ratio: 16 / 9;
+  width: min(var(--ar-stage-max), calc(100% - 1rem));
+  aspect-ratio: var(--ar-stage-aspect);
   margin: 0 auto;
   border-radius: 8px;
   overflow: hidden;
@@ -423,7 +424,7 @@ main {
 
 .ar-scenes {
   margin: 1rem auto 0;
-  width: min(var(--ar-stage-max), 100%);
+  width: min(var(--ar-stage-max), calc(100% - 1rem));
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: clamp(0.35rem, 0.75vw, 0.62rem);
@@ -431,6 +432,20 @@ main {
   transform-style: preserve-3d;
   will-change: transform;
   overflow: hidden;
+}
+
+.panel-ar.is-camera-open .ar-scenes {
+  transform: translate3d(0, 0, 0) !important;
+}
+
+.panel-ar.is-camera-open .ar-scene,
+.panel-ar.is-camera-open .ar-scene.near-left,
+.panel-ar.is-camera-open .ar-scene.near-right,
+.panel-ar.is-camera-open .ar-scene.far-left,
+.panel-ar.is-camera-open .ar-scene.far-right,
+.panel-ar.is-camera-open .ar-scene.is-active {
+  transform: none !important;
+  filter: none !important;
 }
 
 .ar-scene {
@@ -1209,4 +1224,51 @@ body.upside-theme::before {
   .ar-frame-label {
     font-size: 0.82rem;
   }
+}
+
+#upside-down {
+  position: relative;
+  overflow: hidden;
+}
+
+#upside-down::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 22% 34%, rgba(228, 33, 53, 0.17), transparent 42%),
+    radial-gradient(circle at 84% 10%, rgba(91, 37, 105, 0.2), transparent 44%),
+    linear-gradient(180deg, rgba(8, 8, 14, 0.32), rgba(7, 9, 13, 0.58));
+}
+
+.upside-portal {
+  margin-top: 1rem;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 57, 76, 0.42);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 64, 86, 0.12) inset;
+  position: relative;
+}
+
+.upside-portal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(2, 2, 4, 0.02), rgba(2, 2, 4, 0.48));
+}
+
+.upside-portal img {
+  width: 100%;
+  height: clamp(220px, 34vw, 420px);
+  display: block;
+  object-fit: cover;
+  filter: saturate(1.12) contrast(1.1) brightness(0.74);
+  transform: scale(1.02);
+  transition: transform 420ms ease, filter 420ms ease;
+}
+
+#upside-down:hover .upside-portal img {
+  transform: scale(1.06);
+  filter: saturate(1.16) contrast(1.14) brightness(0.7);
 }

@@ -1,8 +1,10 @@
-﻿import { segmentFrame } from './segment.js';
+import { segmentFrame } from './segment.js';
 import { detectFaceMesh, getPointPx, OVAL_IDX } from './facemesh.js';
+import { detectFaceBox } from './face.js';
 import { renderFaceBlend } from './blend.js';
 
 let arSegmenterReady = false;
+const AR_DEFAULT_PREVIEW = 'assets/cast/eleven.jpg';
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -104,6 +106,8 @@ export function initArExperience() {
   const arCaptureNote = document.getElementById('arCaptureNote');
   const arSceneButtons = Array.from(document.querySelectorAll('.ar-scene'));
   const arPanel = document.querySelector('.panel-ar');
+  const arStage = document.getElementById('arStage');
+  const arLaunchImage = document.querySelector('#arLaunchBtn img');
   const arCaptureShell = document.querySelector('.ar-capture-shell');
   const arProcessing = document.getElementById('arProcessing');
   const arProcessingTitle = document.querySelector('#arProcessing strong');
@@ -120,6 +124,7 @@ export function initArExperience() {
   let stripTargetX = 0;
   let stripCurrentX = 0;
   const bgMeshCache = new Map();
+  const bgFaceCache = new Map();
   const STRIP_LERP = 0.18;
 
   const getBgMesh = async (sceneSrc, bgImage) => {
@@ -127,6 +132,13 @@ export function initArExperience() {
     const mesh = await detectFaceMesh(bgImage);
     bgMeshCache.set(sceneSrc, mesh || null);
     return mesh || null;
+  };
+
+  const getBgFace = async (sceneSrc, bgImage) => {
+    if (bgFaceCache.has(sceneSrc)) return bgFaceCache.get(sceneSrc);
+    const face = await detectFaceBox(bgImage);
+    bgFaceCache.set(sceneSrc, face || null);
+    return face || null;
   };
 
   const animateStrip = () => {
@@ -143,6 +155,17 @@ export function initArExperience() {
     captureState = null;
   };
 
+  const syncStageLayout = () => {
+    // Keep one fixed frame for every background scene.
+    arPanel.classList.remove('is-portrait-scene');
+    arPanel.style.setProperty('--ar-stage-aspect', '1280 / 1897');
+  };
+
+  const syncStagePreview = () => {
+    if (!arLaunchImage) return;
+    arLaunchImage.src = AR_DEFAULT_PREVIEW;
+  };
+
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       arCaptureNote.textContent = 'Camera is not supported in this browser.';
@@ -154,6 +177,13 @@ export function initArExperience() {
     arCaptureWrap.classList.add('open');
     arCaptureWrap.setAttribute('aria-hidden', 'false');
     arPanel.classList.add('is-camera-open');
+    syncStageLayout();
+    syncStagePreview();
+    stripTargetX = 0;
+    stripCurrentX = 0;
+    if (arScenesStrip) {
+      arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
+    }
     arPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     if (stream) {
@@ -190,7 +220,13 @@ export function initArExperience() {
     arCaptureWrap.classList.remove('open');
     arCaptureWrap.setAttribute('aria-hidden', 'true');
     arPanel.classList.remove('is-camera-open');
+    stripTargetX = 0;
+    stripCurrentX = 0;
+    if (arScenesStrip) {
+      arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
+    }
     resetCaptureState();
+    syncStagePreview();
   };
 
   const renderCurrentBlend = async () => {
@@ -204,8 +240,12 @@ export function initArExperience() {
       frameCanvas: captureState.frameCanvas,
       maskCanvas: captureState.maskCanvas,
       userMesh: captureState.userMesh,
-      getBgMesh
+      userFace: captureState.userFace,
+      getBgMesh,
+      getBgFace
     });
+    syncStageLayout();
+    syncStagePreview();
   };
 
   arLaunchBtn.addEventListener('click', () => {
@@ -242,13 +282,14 @@ export function initArExperience() {
 
       const segMask = await segmentFrame(frameCanvas);
       const userMesh = await detectFaceMesh(frameCanvas, frameCanvas.width, frameCanvas.height);
+      const userFace = await detectFaceBox(frameCanvas, frameCanvas.width, frameCanvas.height);
       let maskCanvas = segMask;
       if (userMesh) {
         const ovalMask = ovalMaskFromMeshCanvas(userMesh, 8);
         maskCanvas = multiplyMaskCanvases(segMask, ovalMask);
       }
 
-      captureState = { frameCanvas, maskCanvas, userMesh };
+      captureState = { frameCanvas, maskCanvas, userMesh, userFace };
       await renderCurrentBlend();
 
       arCaptureShell.classList.remove('is-processing');
@@ -269,6 +310,8 @@ export function initArExperience() {
       arSceneButtons.forEach((item) => item.classList.remove('is-active'));
       button.classList.add('is-active');
       applyArSceneDepth(arSceneButtons);
+      syncStageLayout();
+      syncStagePreview();
       arCaptureNote.textContent = `Scene locked: ${getActiveSceneName(arSceneButtons)}.`;
 
       if (arCaptureShell.classList.contains('is-result') && captureState && !blendInFlight) {
@@ -285,6 +328,8 @@ export function initArExperience() {
   });
 
   applyArSceneDepth(arSceneButtons);
+  syncStageLayout();
+  syncStagePreview();
 
   if (arScenesStrip) {
     const supportsHover = window.matchMedia('(hover: hover)').matches;

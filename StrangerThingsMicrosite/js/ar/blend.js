@@ -1,18 +1,75 @@
-﻿import { clamp, loadImage } from './utils.js';
+import { clamp, loadImage } from './utils.js';
 import { getLandmarkPoints, OVAL_IDX, solveSimilarityTransform } from './facemesh.js';
+
+const POSTER_SCENE_NAME = 'poster.jpg';
+const FIXED_OUT_W = 1280;
+const FIXED_OUT_H = 1897;
+const POSTER_FACE_TARGET_NORM = { x: 0.268, y: 0.074, w: 0.407, h: 0.41 };
+const POSTER_FIT_POINTS = [
+  { idx: 33, x: 0.411, y: 0.271 },  // left eye
+  { idx: 263, x: 0.575, y: 0.271 }, // right eye
+  { idx: 1, x: 0.495, y: 0.329 },   // nose
+  { idx: 13, x: 0.495, y: 0.39 },   // mouth center
+  { idx: 152, x: 0.49, y: 0.472 }   // chin
+];
+const MAX_FACE_POLY_NORM = [
+  { x: 0.286, y: 0.091 }, { x: 0.335, y: 0.068 }, { x: 0.396, y: 0.056 }, { x: 0.462, y: 0.061 },
+  { x: 0.539, y: 0.071 }, { x: 0.594, y: 0.086 }, { x: 0.635, y: 0.11 }, { x: 0.661, y: 0.154 },
+  { x: 0.67, y: 0.214 }, { x: 0.669, y: 0.293 }, { x: 0.649, y: 0.348 }, { x: 0.62, y: 0.396 },
+  { x: 0.577, y: 0.436 }, { x: 0.527, y: 0.462 }, { x: 0.464, y: 0.475 }, { x: 0.401, y: 0.473 },
+  { x: 0.346, y: 0.455 }, { x: 0.306, y: 0.422 }, { x: 0.276, y: 0.378 }, { x: 0.256, y: 0.324 },
+  { x: 0.248, y: 0.259 }, { x: 0.249, y: 0.201 }, { x: 0.258, y: 0.144 }
+];
+
+function isMaxScene(sceneSrc) {
+  return (sceneSrc || '').toLowerCase().includes(POSTER_SCENE_NAME);
+}
 
 function drawCoverWithTransform(ctx, img, w, h) {
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
   if (!iw || !ih) return null;
 
-  const scale = Math.max(w / iw, h / ih);
+  const scaleX = w / iw;
+  const scaleY = h / ih;
+  ctx.drawImage(img, 0, 0, w, h);
+  return { scaleX, scaleY, dx: 0, dy: 0 };
+}
+
+function drawContainWithTransform(ctx, img, w, h) {
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) return null;
+
+  const scale = Math.min(w / iw, h / ih);
   const dw = iw * scale;
   const dh = ih * scale;
   const dx = (w - dw) / 2;
   const dy = (h - dh) / 2;
+
+  ctx.fillStyle = '#08090d';
+  ctx.fillRect(0, 0, w, h);
   ctx.drawImage(img, dx, dy, dw, dh);
   return { scale, dx, dy };
+}
+
+function mapNormToCanvas(normPt, cover, bgImage) {
+  return {
+    x: normPt.x * bgImage.naturalWidth * cover.scaleX + cover.dx,
+    y: normPt.y * bgImage.naturalHeight * cover.scaleY + cover.dy
+  };
+}
+
+function maxTargetFaceBox(cover, bgImage) {
+  const p = POSTER_FACE_TARGET_NORM;
+  return {
+    x: p.x * bgImage.naturalWidth * cover.scaleX + cover.dx,
+    y: p.y * bgImage.naturalHeight * cover.scaleY + cover.dy,
+    w: p.w * bgImage.naturalWidth * cover.scaleX,
+    h: p.h * bgImage.naturalHeight * cover.scaleY,
+    cx: (p.x + p.w * 0.5) * bgImage.naturalWidth * cover.scaleX + cover.dx,
+    cy: (p.y + p.h * 0.5) * bgImage.naturalHeight * cover.scaleY + cover.dy
+  };
 }
 
 function polygonMaskCanvas(w, h, points, feather = 10) {
@@ -111,17 +168,33 @@ function despillEdges(ctx, w, h) {
   ctx.putImageData(img, 0, 0);
 }
 
+function drawFaceBoxAlignedLayer(lctx, cutout, userFace, targetFace) {
+  if (!userFace || !targetFace || !userFace.w || !targetFace.w) return false;
+
+  const sc = clamp(targetFace.w / userFace.w, 0.5, 2.2);
+  const drawW = cutout.width * sc;
+  const drawH = cutout.height * sc;
+  const x = targetFace.cx - userFace.cx * sc;
+  const y = targetFace.cy - userFace.cy * sc;
+
+  lctx.drawImage(cutout, x, y, drawW, drawH);
+  return true;
+}
+
 export async function renderFaceBlend({
   outCanvas,
   sceneSrc,
   frameCanvas,
   maskCanvas,
   userMesh,
-  getBgMesh
+  userFace,
+  getBgMesh,
+  getBgFace
 }) {
   const bgImage = await loadImage(sceneSrc);
-  const outW = 1280;
-  const outH = 720;
+  const maxScene = isMaxScene(sceneSrc);
+  const outW = FIXED_OUT_W;
+  const outH = FIXED_OUT_H;
 
   outCanvas.width = outW;
   outCanvas.height = outH;
@@ -131,8 +204,19 @@ export async function renderFaceBlend({
 
   const cover = drawCoverWithTransform(outCtx, bgImage, outW, outH);
   if (!cover) return;
-
   const bgMesh = await getBgMesh(sceneSrc, bgImage);
+  const bgFaceRaw = await getBgFace(sceneSrc, bgImage);
+  const bgFace = bgFaceRaw
+    ? {
+        x: bgFaceRaw.x * cover.scaleX + cover.dx,
+        y: bgFaceRaw.y * cover.scaleY + cover.dy,
+        w: bgFaceRaw.w * cover.scaleX,
+        h: bgFaceRaw.h * cover.scaleY,
+        cx: bgFaceRaw.cx * cover.scaleX + cover.dx,
+        cy: bgFaceRaw.cy * cover.scaleY + cover.dy
+      }
+    : null;
+  const forcedMaxFace = maxScene ? maxTargetFaceBox(cover, bgImage) : null;
 
   const cutout = document.createElement('canvas');
   cutout.width = frameCanvas.width;
@@ -150,12 +234,14 @@ export async function renderFaceBlend({
   layer.height = outH;
   const lctx = layer.getContext('2d', { willReadFrequently: true });
 
-  if (userMesh && bgMesh) {
+  let placed = false;
+
+  if (userMesh && bgMesh && !maxScene) {
     const fitIdx = [...OVAL_IDX, 33, 263, 1, 10, 152];
     const srcPts = getLandmarkPoints(userMesh, fitIdx);
     const dstPts = getLandmarkPoints(bgMesh, fitIdx).map((p) => ({
-      x: p.x * cover.scale + cover.dx,
-      y: p.y * cover.scale + cover.dy
+      x: p.x * cover.scaleX + cover.dx,
+      y: p.y * cover.scaleY + cover.dy
     }));
     const fit = solveSimilarityTransform(srcPts, dstPts);
 
@@ -167,16 +253,59 @@ export async function renderFaceBlend({
       lctx.setTransform(sc * c, sc * s, -sc * s, sc * c, fit.tx, fit.ty);
       lctx.drawImage(cutout, 0, 0);
       lctx.setTransform(1, 0, 0, 1, 0, 0);
+      placed = true;
 
       const region = getLandmarkPoints(bgMesh, OVAL_IDX).map((p) => ({
-        x: p.x * cover.scale + cover.dx,
-        y: p.y * cover.scale + cover.dy
+        x: p.x * cover.scaleX + cover.dx,
+        y: p.y * cover.scaleY + cover.dy
       }));
       const regionMask = polygonMaskCanvas(outW, outH, region, 12);
       lctx.globalCompositeOperation = 'destination-in';
       lctx.drawImage(regionMask, 0, 0);
       lctx.globalCompositeOperation = 'source-over';
     }
+  }
+
+  if (!placed && maxScene && userMesh) {
+    const srcPts = POSTER_FIT_POINTS.map((p) => {
+      const lm = userMesh.landmarks[p.idx];
+      return { x: lm.x * userMesh.w, y: lm.y * userMesh.h };
+    });
+    const dstPts = POSTER_FIT_POINTS.map((p) => mapNormToCanvas({ x: p.x, y: p.y }, cover, bgImage));
+    const fit = solveSimilarityTransform(srcPts, dstPts);
+    if (fit) {
+      const rot = fit.rotation;
+      const sc = clamp(fit.scale, 0.52, 1.6);
+      const c = Math.cos(rot);
+      const s = Math.sin(rot);
+      lctx.setTransform(sc * c, sc * s, -sc * s, sc * c, fit.tx, fit.ty);
+      lctx.drawImage(cutout, 0, 0);
+      lctx.setTransform(1, 0, 0, 1, 0, 0);
+      const maxPoly = MAX_FACE_POLY_NORM.map((pt) => mapNormToCanvas(pt, cover, bgImage));
+      const maxMask = polygonMaskCanvas(outW, outH, maxPoly, 7);
+      lctx.globalCompositeOperation = 'destination-in';
+      lctx.drawImage(maxMask, 0, 0);
+      lctx.globalCompositeOperation = 'source-over';
+      placed = true;
+    }
+  }
+
+  if (!placed) {
+    placed = drawFaceBoxAlignedLayer(lctx, cutout, userFace, forcedMaxFace || bgFace);
+    if (placed && maxScene) {
+      const maxPoly = MAX_FACE_POLY_NORM.map((pt) => mapNormToCanvas(pt, cover, bgImage));
+      const maxMask = polygonMaskCanvas(outW, outH, maxPoly, 7);
+      lctx.globalCompositeOperation = 'destination-in';
+      lctx.drawImage(maxMask, 0, 0);
+      lctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  if (!placed) {
+    const sc = Math.min(outW / cutout.width, outH / cutout.height) * 0.8;
+    const dw = cutout.width * sc;
+    const dh = cutout.height * sc;
+    lctx.drawImage(cutout, (outW - dw) / 2, (outH - dh) / 2, dw, dh);
   }
 
   localColorMatchLayer(lctx, outCtx, outW, outH, 0.8);
@@ -194,4 +323,6 @@ export async function renderFaceBlend({
   outCtx.globalAlpha = 0.2;
   outCtx.drawImage(layer, 0, 0);
   outCtx.restore();
+
+  // Intentionally no extra blood effect for poster scene.
 }

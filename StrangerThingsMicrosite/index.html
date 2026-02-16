@@ -17,7 +17,7 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="topbar-row topbar-main">
-        <a class="brand" href="#home">STRANGER <span>THINGS 5</span></a>
+        <marquee><a class="brand" href="#home">STRANGER <span>THINGS 5</span></a></marquee>
         <div class="nav-actions">
           <span class="season-chip">Final Season</span>
           <button class="btn btn-primary btn-small" data-open-trailer>Watch Trailer</button>
@@ -110,13 +110,74 @@
       </div>
     </section>
 
-    <section class="panel" id="ar">
-      <h3>AR Experience</h3>
-      <p>
-        Scan portal markers, track dimensional tears, and unlock exclusive final-season moments
-        with your phone camera in a smooth web-first AR flow.
+    <section class="panel panel-ar" id="ar">
+      <h3 class="ar-heading"><span>CREATE YOUR</span> AVATAR</h3>
+      <p class="ar-copy">
+        Open a Hawkins rift. Capture your photo, choose a scene, and project yourself
+        into the final battle.
       </p>
-      <a class="btn btn-primary" href="#">Start AR</a>
+
+      <div class="ar-stage" id="arStage">
+        <button class="ar-launch-card" id="arLaunchBtn" type="button" aria-label="Create your Stranger Things avatar">
+          <img src="assets/cast/eleven.jpg" alt="" />
+          <span class="ar-launch-overlay"></span>
+          <span class="ar-launch-content">
+            <span class="ar-launch-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                <path d="M8.5 5.5 10 3.5h4L15.5 5.5H18a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h2.5Zm3.5 3.2a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6Zm0 1.8a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"></path>
+              </svg>
+            </span>
+            <strong>Open Rift Camera</strong>
+            <small>Tap to scan your face</small>
+          </span>
+        </button>
+
+        <div class="ar-capture-wrap" id="arCaptureWrap" aria-hidden="true">
+          <div class="ar-capture-shell">
+            <span class="ar-frame-label">Position yourself in frame</span>
+            <button class="ar-capture-close" id="arCaptureCloseBtn" type="button" aria-label="Close camera">&times;</button>
+            <video id="arCaptureVideo" playsinline autoplay muted></video>
+            <canvas id="arBlendCanvas" aria-label="Avatar blend result"></canvas>
+            <button class="ar-capture-btn" id="arCaptureBtn" type="button">
+              <span aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                  <path d="M8.5 5.5 10 3.5h4L15.5 5.5H18a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h2.5Zm3.5 3.2a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6Zm0 1.8a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"></path>
+                </svg>
+              </span>
+              Capture Photo
+            </button>
+            <div class="ar-processing" id="arProcessing" aria-hidden="true">
+              <span class="ar-spinner" aria-hidden="true"></span>
+              <strong>Stabilizing portal...</strong>
+              <small>Preparing your Hawkins avatar</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="ar-capture-note" id="arCaptureNote">Background and edges are cleaned after capture.</p>
+
+      <div class="ar-scenes" aria-label="AR scenes">
+        <button type="button" class="ar-scene is-active">
+          <img src="assets/background/Max.jpg" alt="Max scene" loading="lazy" />
+          <span class="ar-scene-label">Max</span>
+        </button>
+        <button type="button" class="ar-scene">
+          <img src="assets/background/steven.jpg" alt="Steven scene" loading="lazy" />
+          <span class="ar-scene-label">Steven</span>
+        </button>
+        <button type="button" class="ar-scene">
+          <img src="assets/background/Stranger-Things-Will.jpg" alt="Will poster scene" loading="lazy" />
+          <span class="ar-scene-label">Will Poster</span>
+        </button>
+        <button type="button" class="ar-scene">
+          <img src="assets/background/will.jpg" alt="Will scene" loading="lazy" />
+          <span class="ar-scene-label">Will</span>
+        </button>
+        <button type="button" class="ar-scene">
+          <img src="assets/background/groupphoto.jpg" alt="Group photo scene" loading="lazy" />
+          <span class="ar-scene-label">Group Photo</span>
+        </button>
+      </div>
     </section>
 
     <section class="panel" id="upside-down">
@@ -188,6 +249,6 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

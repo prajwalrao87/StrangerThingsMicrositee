@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stranger Things 5 | Official Experience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="site-bg" aria-hidden="true"></div>
+  <button class="upside-exit" id="upsideExitBtn" type="button" aria-label="Exit Upside Down">&times;</button>
+
+  <div class="world">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-row topbar-main">
+        <a class="brand" href="#home">STRANGER <span>THINGS 5</span></a>
+        <div class="nav-actions">
+          <span class="season-chip">Final Season</span>
+          <button class="btn btn-primary btn-small" data-open-trailer>Watch Trailer</button>
+        </div>
+      </div>
+      <div class="topbar-row topbar-links">
+        <nav class="menu" aria-label="Main Navigation">
+          <a href="#about">About</a>
+          <a href="#cast">Cast</a>
+          <a href="#ar">AR Experience</a>
+          <a href="#upside-down">Upside Down</a>
+          <a href="#trailer">Trailer</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <p class="tag">A NETFLIX ORIGINAL SERIES</p>
+      <div class="title-lockup" aria-label="Stranger Things 5">
+        <span class="title-five" aria-hidden="true">5</span>
+        <h1 class="title">
+          <span class="title-line title-line-top">STRANGER</span>
+          <span class="title-line title-line-bottom">THINGS</span>
+        </h1>
+      </div>
+      <h2 class="subtitle">SEASON FIVE</h2>
+      <p class="desc">
+        The final battle for Hawkins begins. Discover story drops, cast reveals, trailer moments,
+        and an immersive AR gateway into the Upside Down.
+      </p>
+      <div class="actions">
+        <button class="btn btn-primary" data-open-trailer>Watch Trailer</button>
+        <a class="btn btn-ghost" href="#ar">Launch AR Experience</a>
+      </div>
+    </section>
+
+    <section class="panel" id="about">
+      <h3>About</h3>
+      <p>
+        Season 5 is the last chapter of Stranger Things. Hawkins and the Upside Down collide,
+        and every character faces a final choice.
+      </p>
+    </section>
+
+    <section class="panel" id="cast">
+      <h3>Cast</h3>
+      <div class="grid-cast">
+        <article class="card">
+          <img src="assets/cast/eleven.jpg" alt="Eleven" loading="lazy" />
+          <h4>Eleven</h4>
+        </article>
+        <article class="card">
+          <img src="assets/cast/mike.jpg" alt="Mike" loading="lazy" />
+          <h4>Mike</h4>
+        </article>
+        <article class="card">
+          <img src="assets/cast/will.jpg" alt="Will" loading="lazy" />
+          <h4>Will</h4>
+        </article>
+        <article class="card">
+          <img src="assets/cast/dustin.jpg" alt="Dustin" loading="lazy" />
+          <h4>Dustin</h4>
+        </article>
+        <article class="card">
+          <img src="assets/cast/lucos.jpg" alt="Lucos" loading="lazy" />
+          <h4>Lucos</h4>
+        </article>
+        <article class="card">
+          <img src="assets/cast/max.png" alt="Max" loading="lazy" />
+          <h4>Max</h4>
+        </article>
+        <article class="card">
+          <img src="assets/cast/nancy.png" alt="Nancy" loading="lazy" />
+          <h4>Nancy</h4>
+        </article>
+        <article class="card">
+          <img src="assets/cast/steve.jpg" alt="Steve" loading="lazy" />
+          <h4>Steve</h4>
+        </article>
+        <article class="card">
+          <img src="assets/cast/vecna.png" alt="Vecna" loading="lazy" />
+          <h4>Vecna</h4>
+        </article>
+            <article class="card">
+          <img src="assets/cast/eddie.png" alt="Eddie" loading="lazy" />
+          <h4>Eddie</h4>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="ar">
+      <h3>AR Experience</h3>
+      <p>
+        Scan portal markers, track dimensional tears, and unlock exclusive final-season moments
+        with your phone camera in a smooth web-first AR flow.
+      </p>
+      <a class="btn btn-primary" href="#">Start AR</a>
+    </section>
+
+    <section class="panel" id="upside-down">
+      <h3>Upside Down</h3>
+      <p>
+        Explore dark maps of Hawkins, major threat timelines, and key event links across all seasons
+        leading into the final confrontation.
+      </p>
+      <div class="upside-game">
+        <button class="btn btn-primary" id="upsideEnterBtn" type="button">Enter Upside Down</button>
+      </div>
+      <div class="dice-overlay" id="diceOverlay" aria-hidden="true">
+        <div class="dice-dialog" role="dialog" aria-label="Upside Down Dice">
+          <button class="dice-close" id="diceCloseBtn" type="button" aria-label="Close Dice">&times;</button>
+          <p>Tap the dice to roll your fate</p>
+          <button class="dice-btn" id="diceBtn" type="button" aria-label="Roll Dice">
+            <span id="diceFace">?</span>
+          </button>
+          <small id="diceHint">Roll to enter the Upside Down</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="trailer">
+      <h3>Trailer</h3>
+      <p>
+        Watch the official teaser and revisit critical scenes before the final season arrives.
+      </p>
+      <button class="btn btn-primary" data-open-trailer>Play Trailer</button>
+    </section>
+  </main>
+
+  <footer class="site-footer footer-reveal" id="footer">
+    <div class="footer-inner">
+      <div class="footer-col footer-brand">
+        <h4>STRANGER THINGS 5</h4>
+        <p>A Netflix Original Series</p>
+      </div>
+      <nav class="footer-col footer-links" aria-label="Footer Navigation">
+        <a href="#about">About</a>
+        <a href="#cast">Cast</a>
+        <a href="#ar">AR Experience</a>
+        <a href="#trailer">Trailer</a>
+      </nav>
+      <div class="footer-col footer-copy">
+        <p>&copy; 2026 Netflix, Inc. All rights reserved.</p>
+        <small>AR Microsite POC - For demonstration purposes only</small>
+      </div>
+    </div>
+  </footer>
+  </div>
+
+  <div class="modal" id="trailerModal" aria-hidden="true" role="dialog" aria-label="Trailer">
+    <div class="modal-backdrop" data-close-trailer></div>
+    <div class="modal-content">
+      <button class="close" aria-label="Close trailer" data-close-trailer>&times;</button>
+      <div class="video-placeholder">
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/PssKpzB0Ah0?si=FCd6IaTBLn_ezJHr"
+          title="Stranger Things Season 5 Trailer"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

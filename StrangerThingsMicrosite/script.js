@@ -15,6 +15,8 @@ const diceBtn = document.getElementById('diceBtn');
 const diceFace = document.getElementById('diceFace');
 const diceCloseBtn = document.getElementById('diceCloseBtn');
 const diceHint = document.getElementById('diceHint');
+const upsidePanel = document.getElementById('upside-down');
+const riftSignalLine = document.getElementById('riftSignalLine');
 
 let targetX = 0;
 let targetY = 0;
@@ -80,6 +82,27 @@ function closeDiceOverlay() {
   if (!diceOverlay) return;
   diceOverlay.classList.remove('open');
   diceOverlay.setAttribute('aria-hidden', 'true');
+}
+
+function updateRiftSignal() {
+  if (!riftSignalLine) return;
+
+  const signals = [
+    'TRANSMISSION LOCKED: FIND THE CLOCK.',
+    'PORTAL PRESSURE RISING UNDER HAWKINS LAB.',
+    'VECNA SIGNAL DETECTED IN CREEL HOUSE.',
+    'RIFT DRIFT CONFIRMED: EAST OF STARCOURT.',
+    'EYES OPEN. STAY OFF THE MAIN ROAD.'
+  ];
+
+  let index = 0;
+  window.setInterval(() => {
+    index = (index + 1) % signals.length;
+    riftSignalLine.textContent = signals[index];
+    riftSignalLine.classList.remove('glitch');
+    void riftSignalLine.offsetWidth;
+    riftSignalLine.classList.add('glitch');
+  }, 3200);
 }
 
 function animateParallax() {
@@ -165,6 +188,20 @@ if (upsideExitBtn) {
     closeDiceOverlay();
   });
 }
+if (upsidePanel) {
+  upsidePanel.addEventListener('mousemove', (event) => {
+    const rect = upsidePanel.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    upsidePanel.style.setProperty('--rift-x', `${x}%`);
+    upsidePanel.style.setProperty('--rift-y', `${y}%`);
+  });
+
+  upsidePanel.addEventListener('mouseleave', () => {
+    upsidePanel.style.setProperty('--rift-x', '50%');
+    upsidePanel.style.setProperty('--rift-y', '50%');
+  });
+}
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
@@ -188,4 +225,5 @@ if (footerReveal && 'IntersectionObserver' in window) {
 }
 
 animateParallax();
+updateRiftSignal();
 initArExperience();

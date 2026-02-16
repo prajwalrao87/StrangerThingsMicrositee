@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #080608;
   --bg-soft: #15080b;
   --red: #c80e19;
@@ -261,6 +261,492 @@ main {
   line-height: 1.5;
 }
 
+.panel-ar {
+  --ar-stage-max: 620px;
+  --ar-stage-aspect: 1280 / 1897;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-color: rgba(214, 43, 56, 0.42);
+  background:
+    radial-gradient(circle at 80% 8%, rgba(196, 26, 42, 0.22), transparent 44%),
+    radial-gradient(circle at 10% 0%, rgba(58, 80, 132, 0.16), transparent 30%),
+    linear-gradient(180deg, rgba(15, 8, 12, 0.93), rgba(10, 6, 9, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(121, 17, 28, 0.4), 0 18px 40px rgba(0, 0, 0, 0.38);
+}
+
+.ar-heading {
+  margin: 0;
+  font-family: "Cinzel", serif;
+  letter-spacing: 0.04em;
+  font-size: clamp(2.3rem, 5vw, 4.2rem);
+  font-weight: 700;
+  color: #ece4e6;
+  text-shadow: 0 0 12px rgba(191, 27, 40, 0.3);
+}
+
+.ar-heading span {
+  color: #d93743;
+}
+
+.ar-copy {
+  max-width: 40ch;
+  width: min(40ch, calc(100% - 1.6rem));
+  margin: 0.5rem auto 1.4rem;
+  padding: 0;
+  color: rgba(243, 231, 212, 0.82);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.ar-stage {
+  position: relative;
+  width: min(var(--ar-stage-max), calc(100% - 1rem));
+  aspect-ratio: var(--ar-stage-aspect);
+  margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(224, 44, 59, 0.44);
+  box-shadow:
+    0 0 0 1px rgba(130, 17, 31, 0.45) inset,
+    0 0 35px rgba(142, 19, 35, 0.34);
+}
+
+.ar-stage::before,
+.ar-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ar-stage::before {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(210, 38, 54, 0.16), transparent 52%),
+    linear-gradient(120deg, rgba(18, 16, 30, 0.32), rgba(0, 0, 0, 0.05), rgba(146, 23, 37, 0.22));
+  animation: arRiftPulse 3.2s ease-in-out infinite;
+}
+
+.ar-stage::after {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05) 0,
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 2px,
+      transparent 4px
+    );
+  opacity: 0.13;
+  mix-blend-mode: screen;
+}
+
+.ar-launch-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(234, 174, 76, 0.26);
+  margin: 0;
+  padding: 0;
+  background: #020307;
+  cursor: pointer;
+  transition: opacity 300ms ease, transform 300ms ease;
+  z-index: 2;
+}
+
+.ar-launch-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.88;
+  filter: saturate(1.08) contrast(1.07) brightness(0.74);
+}
+
+.ar-launch-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(9, 6, 12, 0.16), rgba(8, 5, 10, 0.72)),
+    radial-gradient(circle at 52% 46%, rgba(215, 30, 47, 0.26), transparent 34%),
+    radial-gradient(circle at 13% 8%, rgba(73, 95, 156, 0.15), transparent 38%);
+}
+
+.ar-launch-content {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  color: #fff;
+  z-index: 1;
+}
+
+.ar-launch-icon {
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 0.2rem;
+  border-radius: 999px;
+  border: 2px solid rgba(225, 62, 77, 0.9);
+  display: grid;
+  place-items: center;
+  background: rgba(5, 5, 9, 0.52);
+  box-shadow: 0 0 18px rgba(170, 18, 34, 0.35);
+}
+
+.ar-launch-icon svg {
+  width: 32px;
+  height: 32px;
+  fill: #f04e5e;
+}
+
+.ar-launch-content strong {
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 16px rgba(184, 27, 42, 0.36);
+}
+
+.ar-launch-content small {
+  font-size: clamp(0.95rem, 1.4vw, 1.25rem);
+  color: rgba(232, 227, 235, 0.85);
+}
+
+.panel-ar.is-camera-open .ar-launch-card {
+  opacity: 0;
+  transform: translateY(-14px) scale(0.98);
+  pointer-events: none;
+}
+
+.ar-scenes {
+  margin: 1rem auto 0;
+  width: min(var(--ar-stage-max), calc(100% - 1rem));
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(0.35rem, 0.75vw, 0.62rem);
+  perspective: 1200px;
+  transform-style: preserve-3d;
+  will-change: transform;
+  overflow: hidden;
+}
+
+.panel-ar.is-camera-open .ar-scenes {
+  transform: translate3d(0, 0, 0) !important;
+}
+
+.panel-ar.is-camera-open .ar-scene,
+.panel-ar.is-camera-open .ar-scene.near-left,
+.panel-ar.is-camera-open .ar-scene.near-right,
+.panel-ar.is-camera-open .ar-scene.far-left,
+.panel-ar.is-camera-open .ar-scene.far-right,
+.panel-ar.is-camera-open .ar-scene.is-active {
+  transform: none !important;
+  filter: none !important;
+}
+
+.ar-scene {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  aspect-ratio: 3 / 4;
+  border: 1px solid rgba(144, 33, 45, 0.6);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(29, 14, 19, 0.88), rgba(13, 9, 12, 0.95));
+  color: rgba(236, 223, 228, 0.88);
+  padding: 0;
+  font-family: "Rajdhani", sans-serif;
+  font-size: clamp(0.72rem, 0.95vw, 0.88rem);
+  font-weight: 600;
+  cursor: pointer;
+  transform-origin: center center;
+  opacity: 0;
+  transform: translateY(28px) rotateY(calc(var(--offset, 0) * 4deg)) scale(0.96);
+  filter: saturate(0.9) brightness(0.82);
+  will-change: transform, filter;
+  backface-visibility: hidden;
+  transition:
+    border-color 180ms ease,
+    box-shadow 260ms ease,
+    transform 360ms cubic-bezier(0.2, 0.82, 0.24, 1),
+    filter 220ms ease,
+    opacity 220ms ease;
+  transition-delay: calc(var(--i, 0) * 45ms);
+}
+
+.ar-scenes.is-ready .ar-scene {
+  opacity: 1;
+  transform: translateY(0) rotateY(calc(var(--offset, 0) * 4deg)) scale(1);
+}
+
+.ar-scene img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  filter: saturate(1.08) contrast(1.08) brightness(0.82);
+  will-change: transform, filter;
+  transition: transform 280ms cubic-bezier(0.2, 0.82, 0.24, 1), filter 220ms ease;
+}
+
+.ar-scene::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(5, 4, 9, 0.88));
+  pointer-events: none;
+}
+
+.ar-scene::before {
+  content: "";
+  position: absolute;
+  top: -26%;
+  left: -40%;
+  width: 62%;
+  height: 170%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 129, 149, 0.22), rgba(255, 255, 255, 0));
+  transform: rotate(16deg) translateX(-170%);
+  transition: transform 380ms ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ar-scene-label {
+  position: absolute;
+  left: 50%;
+  bottom: 0.34rem;
+  transform: translateX(-50%);
+  width: calc(100% - 0.5rem);
+  text-align: center;
+  color: rgba(255, 245, 247, 0.95);
+  font-size: clamp(0.7rem, 0.85vw, 0.86rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.72);
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ar-scene:hover {
+  border-color: rgba(225, 71, 84, 0.8);
+  box-shadow: 0 8px 18px rgba(130, 17, 31, 0.28);
+}
+
+.ar-scene:hover::before {
+  transform: rotate(16deg) translateX(260%);
+}
+
+.ar-scene:hover img {
+  transform: scale(1.03);
+}
+
+.ar-scene.near-left,
+.ar-scene.near-right {
+  transform: translateY(1px) rotateY(calc(var(--offset, 0) * 5.4deg)) scale(0.98);
+  filter: saturate(0.95) brightness(0.78);
+  z-index: 3;
+}
+
+.ar-scene.far-left,
+.ar-scene.far-right {
+  transform: translateY(4px) rotateY(calc(var(--offset, 0) * 7deg)) scale(0.95);
+  filter: saturate(0.82) brightness(0.68);
+  z-index: 2;
+}
+
+.ar-scene.is-active {
+  border-color: rgba(232, 72, 89, 0.9);
+  color: #fff;
+  transform: translateY(-8px) rotateY(0deg) scale(1.04);
+  filter: saturate(1.08) brightness(1);
+  box-shadow: 0 0 0 1px rgba(176, 24, 39, 0.4) inset, 0 14px 26px rgba(161, 20, 34, 0.38);
+  z-index: 5;
+}
+
+.ar-scene.is-active img {
+  transform: scale(1.08);
+}
+
+.ar-scene.is-active::before {
+  transform: rotate(16deg) translateX(220%);
+}
+
+.ar-capture-wrap {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(22px) scale(0.985);
+  pointer-events: none;
+  transition: opacity 360ms ease, transform 360ms cubic-bezier(0.22, 0.75, 0.26, 1);
+  z-index: 2;
+}
+
+.ar-capture-wrap.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.ar-capture-shell {
+  position: relative;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(225, 52, 67, 0.52);
+  overflow: hidden;
+  background: #08090d;
+  min-height: 0;
+}
+
+.ar-capture-shell.is-processing #arCaptureVideo,
+.ar-capture-shell.is-processing .ar-frame-label,
+.ar-capture-shell.is-processing .ar-capture-btn,
+.ar-capture-shell.is-processing .ar-capture-close {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ar-frame-label {
+  position: absolute;
+  left: 0.7rem;
+  top: 0.6rem;
+  z-index: 2;
+  border-radius: 5px;
+  background: rgba(37, 36, 44, 0.9);
+  color: #ff5a6c;
+  font-size: 1rem;
+  padding: 0.25rem 0.6rem;
+  font-weight: 600;
+}
+
+.ar-capture-close {
+  position: absolute;
+  right: 0.7rem;
+  top: 0.6rem;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(50, 54, 59, 0.9);
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
+#arCaptureVideo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+}
+
+#arBlendCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+  background: #060508;
+}
+
+.ar-capture-shell.is-result #arBlendCanvas {
+  opacity: 1;
+}
+
+.ar-capture-shell.is-result #arCaptureVideo,
+.ar-capture-shell.is-result .ar-capture-btn,
+.ar-capture-shell.is-result .ar-frame-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ar-capture-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 0.8rem;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(140deg, #ff5c6d, #bf202f);
+  color: #fff;
+  font-family: "Rajdhani", sans-serif;
+  font-size: clamp(0.98rem, 1.4vw, 1.15rem);
+  font-weight: 700;
+  padding: 0.48rem 1.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.ar-capture-btn svg {
+  width: 21px;
+  height: 21px;
+  fill: currentColor;
+}
+
+.ar-processing {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.55rem;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(95, 14, 27, 0.4), rgba(0, 0, 0, 0.96) 62%),
+    #000;
+  border-radius: 8px;
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  transition: opacity 320ms ease, transform 320ms ease;
+}
+
+.ar-capture-shell.is-processing .ar-processing {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ar-processing strong {
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 14px rgba(185, 27, 42, 0.38);
+}
+
+.ar-processing small {
+  font-size: clamp(0.95rem, 1.35vw, 1.2rem);
+  color: rgba(218, 215, 209, 0.8);
+}
+
+.ar-spinner {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  border: 4px solid rgba(233, 61, 78, 0.22);
+  border-top-color: #ef5163;
+  animation: arSpin 0.9s linear infinite;
+}
+
+.ar-capture-note {
+  margin-top: 0.75rem;
+  color: rgba(225, 216, 195, 0.8);
+  min-height: 1.55em;
+}
+
 .upside-game {
   margin-top: 1rem;
   display: flex;
@@ -373,6 +859,15 @@ body.upside-down .upside-exit {
   50% { transform: rotate(10deg); }
   75% { transform: rotate(-7deg); }
   100% { transform: rotate(0deg); }
+}
+
+@keyframes arSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes arRiftPulse {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.02); }
 }
 
 .grid-cast {
@@ -676,9 +1171,25 @@ body.upside-theme::before {
   .footer-copy {
     text-align: center;
   }
+
+  .ar-scenes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    perspective: none;
+    overflow: visible;
+  }
+
+  .ar-scene,
+  .ar-scene.near-left,
+  .ar-scene.near-right,
+  .ar-scene.far-left,
+  .ar-scene.far-right,
+  .ar-scene.is-active {
+    transform: none;
+    filter: none;
+  }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .title-five {
     font-size: clamp(7.2rem, 44vw, 11.5rem);
     transform: translate(-50%, -50%);
@@ -705,4 +1216,59 @@ body.upside-theme::before {
   .upside-game .btn {
     width: auto;
   }
+
+  .ar-scenes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ar-frame-label {
+    font-size: 0.82rem;
+  }
+}
+
+#upside-down {
+  position: relative;
+  overflow: hidden;
+}
+
+#upside-down::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 22% 34%, rgba(228, 33, 53, 0.17), transparent 42%),
+    radial-gradient(circle at 84% 10%, rgba(91, 37, 105, 0.2), transparent 44%),
+    linear-gradient(180deg, rgba(8, 8, 14, 0.32), rgba(7, 9, 13, 0.58));
+}
+
+.upside-portal {
+  margin-top: 1rem;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 57, 76, 0.42);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 64, 86, 0.12) inset;
+  position: relative;
+}
+
+.upside-portal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(2, 2, 4, 0.02), rgba(2, 2, 4, 0.48));
+}
+
+.upside-portal img {
+  width: 100%;
+  height: clamp(220px, 34vw, 420px);
+  display: block;
+  object-fit: cover;
+  filter: saturate(1.12) contrast(1.1) brightness(0.74);
+  transform: scale(1.02);
+  transition: transform 420ms ease, filter 420ms ease;
+}
+
+#upside-down:hover .upside-portal img {
+  transform: scale(1.06);
+  filter: saturate(1.16) contrast(1.14) brightness(0.7);
 }

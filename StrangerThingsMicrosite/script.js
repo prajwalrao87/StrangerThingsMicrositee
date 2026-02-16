@@ -1,4 +1,6 @@
-﻿const navLinks = Array.from(document.querySelectorAll('.menu a'));
+﻿import { initArExperience } from './js/ar/app.js';
+
+const navLinks = Array.from(document.querySelectorAll('.menu a'));
 const sections = Array.from(document.querySelectorAll('main section[id]'));
 const modal = document.getElementById('trailerModal');
 const openButtons = document.querySelectorAll('[data-open-trailer]');
@@ -26,9 +28,7 @@ function setActiveLink() {
   let currentId = sections[0]?.id;
 
   sections.forEach((section) => {
-    if (section.offsetTop <= scrollPos) {
-      currentId = section.id;
-    }
+    if (section.offsetTop <= scrollPos) currentId = section.id;
   });
 
   navLinks.forEach((link) => {
@@ -38,17 +38,13 @@ function setActiveLink() {
 }
 
 function openTrailer() {
-  if (!modal) {
-    return;
-  }
+  if (!modal) return;
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
 }
 
 function closeTrailer() {
-  if (!modal) {
-    return;
-  }
+  if (!modal) return;
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden', 'true');
 }
@@ -58,12 +54,8 @@ function setUpsideState(isOn) {
 
   if (isOn) {
     parallaxEnabled = false;
-    if (siteBg) {
-      siteBg.style.transform = 'translate3d(0, 0, 0) scale(1)';
-    }
-    if (hero) {
-      hero.style.transform = 'translate3d(0, 0, 0)';
-    }
+    if (siteBg) siteBg.style.transform = 'translate3d(0, 0, 0) scale(1)';
+    if (hero) hero.style.transform = 'translate3d(0, 0, 0)';
     document.body.classList.add('upside-down');
     upsideThemeTimer = setTimeout(() => {
       document.body.classList.add('upside-theme');
@@ -77,44 +69,18 @@ function setUpsideState(isOn) {
 }
 
 function openDiceOverlay() {
-  if (!diceOverlay) {
-    return;
-  }
+  if (!diceOverlay) return;
   diceOverlay.classList.add('open');
   diceOverlay.setAttribute('aria-hidden', 'false');
-  if (diceFace) {
-    diceFace.textContent = '?';
-  }
-  if (diceHint) {
-    diceHint.textContent = 'Roll to enter the Upside Down';
-  }
+  if (diceFace) diceFace.textContent = '?';
+  if (diceHint) diceHint.textContent = 'Roll to enter the Upside Down';
 }
 
 function closeDiceOverlay() {
-  if (!diceOverlay) {
-    return;
-  }
+  if (!diceOverlay) return;
   diceOverlay.classList.remove('open');
   diceOverlay.setAttribute('aria-hidden', 'true');
 }
-
-openButtons.forEach((button) => {
-  button.addEventListener('click', openTrailer);
-});
-
-closeButtons.forEach((button) => {
-  button.addEventListener('click', closeTrailer);
-});
-
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    closeTrailer();
-    closeDiceOverlay();
-  }
-});
-
-window.addEventListener('scroll', setActiveLink, { passive: true });
-setActiveLink();
 
 function animateParallax() {
   if (!parallaxEnabled) {
@@ -128,13 +94,18 @@ function animateParallax() {
   if (siteBg) {
     siteBg.style.transform = `translate3d(${currentX * 10}px, ${currentY * 8}px, 0) scale(1.03)`;
   }
-
   if (hero) {
     hero.style.transform = `translate3d(${currentX * -8}px, ${currentY * -6}px, 0)`;
   }
 
   requestAnimationFrame(animateParallax);
 }
+
+openButtons.forEach((button) => button.addEventListener('click', openTrailer));
+closeButtons.forEach((button) => button.addEventListener('click', closeTrailer));
+
+window.addEventListener('scroll', setActiveLink, { passive: true });
+setActiveLink();
 
 window.addEventListener('mousemove', (event) => {
   const centerX = window.innerWidth / 2;
@@ -143,47 +114,27 @@ window.addEventListener('mousemove', (event) => {
   targetY = (event.clientY - centerY) / centerY;
 });
 
-window.addEventListener(
-  'deviceorientation',
-  (event) => {
-    if (event.gamma == null || event.beta == null) {
-      return;
-    }
-    targetX = Math.max(-1, Math.min(1, event.gamma / 35));
-    targetY = Math.max(-1, Math.min(1, event.beta / 45));
-  },
-  { passive: true }
-);
-
-animateParallax();
+window.addEventListener('deviceorientation', (event) => {
+  if (event.gamma == null || event.beta == null) return;
+  targetX = Math.max(-1, Math.min(1, event.gamma / 35));
+  targetY = Math.max(-1, Math.min(1, event.beta / 45));
+}, { passive: true });
 
 if (upsideEnterBtn) {
-  upsideEnterBtn.addEventListener('click', () => {
-    openDiceOverlay();
-  });
+  upsideEnterBtn.addEventListener('click', openDiceOverlay);
 }
-
 if (diceCloseBtn) {
-  diceCloseBtn.addEventListener('click', () => {
-    closeDiceOverlay();
-  });
+  diceCloseBtn.addEventListener('click', closeDiceOverlay);
 }
-
 if (diceOverlay) {
   diceOverlay.addEventListener('click', (event) => {
-    if (event.target === diceOverlay) {
-      closeDiceOverlay();
-    }
+    if (event.target === diceOverlay) closeDiceOverlay();
   });
 }
-
 if (diceBtn) {
   let rolling = false;
   diceBtn.addEventListener('click', () => {
-    if (rolling) {
-      return;
-    }
-
+    if (rolling) return;
     rolling = true;
     diceBtn.classList.add('rolling');
 
@@ -191,19 +142,13 @@ if (diceBtn) {
     const spin = setInterval(() => {
       tick += 1;
       const randomVal = Math.floor(Math.random() * 5) + 1;
-      if (diceFace) {
-        diceFace.textContent = String(randomVal);
-      }
+      if (diceFace) diceFace.textContent = String(randomVal);
 
       if (tick >= 10) {
         clearInterval(spin);
         const finalRoll = 5;
-        if (diceFace) {
-          diceFace.textContent = String(finalRoll);
-        }
-        if (diceHint) {
-          diceHint.textContent = `Rolled ${finalRoll}. Entering the Upside Down...`;
-        }
+        if (diceFace) diceFace.textContent = String(finalRoll);
+        if (diceHint) diceHint.textContent = `Rolled ${finalRoll}. Entering the Upside Down...`;
         setTimeout(() => {
           setUpsideState(true);
           closeDiceOverlay();
@@ -214,7 +159,6 @@ if (diceBtn) {
     }, 80);
   });
 }
-
 if (upsideExitBtn) {
   upsideExitBtn.addEventListener('click', () => {
     setUpsideState(false);
@@ -222,20 +166,26 @@ if (upsideExitBtn) {
   });
 }
 
-if (footerReveal && 'IntersectionObserver' in window) {
-  const footerObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          footerReveal.classList.add('in-view');
-          footerObserver.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.25 }
-  );
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closeTrailer();
+    closeDiceOverlay();
+  }
+});
 
+if (footerReveal && 'IntersectionObserver' in window) {
+  const footerObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        footerReveal.classList.add('in-view');
+        footerObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.25 });
   footerObserver.observe(footerReveal);
 } else if (footerReveal) {
   footerReveal.classList.add('in-view');
 }
+
+animateParallax();
+initArExperience();

@@ -1229,6 +1229,11 @@ body.upside-theme::before {
 #upside-down {
   position: relative;
   overflow: hidden;
+  --rift-x: 50%;
+  --rift-y: 50%;
+  background:
+    radial-gradient(circle at var(--rift-x) var(--rift-y), rgba(208, 33, 55, 0.2), transparent 30%),
+    linear-gradient(180deg, rgba(17, 8, 12, 0.86), rgba(8, 6, 11, 0.94));
 }
 
 #upside-down::before {
@@ -1239,6 +1244,55 @@ body.upside-theme::before {
   background: radial-gradient(circle at 22% 34%, rgba(228, 33, 53, 0.17), transparent 42%),
     radial-gradient(circle at 84% 10%, rgba(91, 37, 105, 0.2), transparent 44%),
     linear-gradient(180deg, rgba(8, 8, 14, 0.32), rgba(7, 9, 13, 0.58));
+}
+
+.rift-signal {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.7rem;
+  align-items: center;
+  border: 1px solid rgba(235, 58, 75, 0.32);
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.02) 0,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 2px,
+      transparent 4px
+    ),
+    linear-gradient(180deg, rgba(19, 8, 13, 0.9), rgba(9, 7, 12, 0.94));
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  box-shadow: 0 0 0 1px rgba(128, 19, 31, 0.35) inset;
+}
+
+.rift-led {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #ff4758;
+  box-shadow: 0 0 11px rgba(255, 71, 88, 0.8);
+  animation: riftBlink 1.4s steps(2, end) infinite;
+}
+
+.rift-line {
+  margin: 0;
+  font-family: "Rajdhani", sans-serif;
+  letter-spacing: 0.06em;
+  font-size: clamp(0.95rem, 1.25vw, 1.18rem);
+  color: #ffd9de;
+  text-transform: uppercase;
+}
+
+.rift-subline {
+  grid-column: 2;
+  color: rgba(216, 200, 206, 0.72);
+  letter-spacing: 0.06em;
+}
+
+.rift-line.glitch {
+  animation: signalGlitch 420ms ease;
 }
 
 .upside-portal {
@@ -1258,6 +1312,21 @@ body.upside-theme::before {
   background: linear-gradient(180deg, rgba(2, 2, 4, 0.02), rgba(2, 2, 4, 0.48));
 }
 
+.upside-portal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 56, 75, 0.18), transparent 28%),
+    radial-gradient(circle at 82% 38%, rgba(122, 33, 155, 0.18), transparent 30%),
+    linear-gradient(0deg, transparent 0 76%, rgba(255, 255, 255, 0.08) 78%, transparent 81%);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+  animation: portalFlicker 5.2s linear infinite;
+}
+
 .upside-portal img {
   width: 100%;
   height: clamp(220px, 34vw, 420px);
@@ -1271,4 +1340,30 @@ body.upside-theme::before {
 #upside-down:hover .upside-portal img {
   transform: scale(1.06);
   filter: saturate(1.16) contrast(1.14) brightness(0.7);
+}
+
+@keyframes riftBlink {
+  0%, 40%, 100% { opacity: 1; }
+  42%, 44%, 72% { opacity: 0.2; }
+}
+
+@keyframes signalGlitch {
+  0% { transform: translateX(0); text-shadow: none; opacity: 0.8; }
+  24% { transform: translateX(-1px); text-shadow: 1px 0 #0af, -1px 0 #f33; }
+  55% { transform: translateX(1px); text-shadow: -1px 0 #0af, 1px 0 #f33; }
+  100% { transform: translateX(0); text-shadow: none; opacity: 1; }
+}
+
+@keyframes portalFlicker {
+  0%, 7%, 35%, 63%, 100% { opacity: 0.66; }
+  8%, 34% { opacity: 0.3; }
+  64%, 70% { opacity: 0.82; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rift-led,
+  .rift-line.glitch,
+  .upside-portal::before {
+    animation: none;
+  }
 }

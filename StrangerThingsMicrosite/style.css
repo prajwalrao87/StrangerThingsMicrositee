@@ -1307,6 +1307,20 @@ body.upside-theme::before {
     linear-gradient(180deg, rgba(8, 8, 14, 0.32), rgba(7, 9, 13, 0.58));
 }
 
+#upside-down::after {
+  content: "";
+  position: absolute;
+  inset: -20% -15%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.06), transparent 42%),
+    radial-gradient(circle at 70% 70%, rgba(67, 102, 170, 0.16), transparent 45%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent 60%);
+  opacity: 0.35;
+  mix-blend-mode: screen;
+  animation: riftDrift 12s ease-in-out infinite;
+}
+
 .rift-signal {
   margin-top: 1rem;
   display: grid;
@@ -1326,6 +1340,7 @@ body.upside-theme::before {
   border-radius: 10px;
   padding: 0.7rem 0.9rem;
   box-shadow: 0 0 0 1px rgba(128, 19, 31, 0.35) inset;
+  transition: border-color 260ms ease, box-shadow 260ms ease;
 }
 
 .rift-led {
@@ -1370,7 +1385,14 @@ body.upside-theme::before {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(2, 2, 4, 0.02), rgba(2, 2, 4, 0.48));
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.14), transparent 26%),
+    radial-gradient(circle at 70% 65%, rgba(122, 156, 255, 0.16), transparent 30%),
+    radial-gradient(circle at 40% 80%, rgba(255, 78, 102, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(2, 2, 4, 0.08), rgba(2, 2, 4, 0.55));
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  animation: sporesDrift 9s ease-in-out infinite;
 }
 
 .upside-portal::before {
@@ -1403,6 +1425,11 @@ body.upside-theme::before {
   filter: saturate(1.16) contrast(1.14) brightness(0.7);
 }
 
+#upside-down:hover .rift-signal {
+  border-color: rgba(255, 92, 116, 0.55);
+  box-shadow: 0 0 0 1px rgba(181, 36, 52, 0.45) inset, 0 0 16px rgba(255, 63, 89, 0.25);
+}
+
 @keyframes riftBlink {
   0%, 40%, 100% { opacity: 1; }
   42%, 44%, 72% { opacity: 0.2; }
@@ -1419,6 +1446,16 @@ body.upside-theme::before {
   0%, 7%, 35%, 63%, 100% { opacity: 0.66; }
   8%, 34% { opacity: 0.3; }
   64%, 70% { opacity: 0.82; }
+}
+
+@keyframes riftDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-2%, 2%, 0) scale(1.02); }
+}
+
+@keyframes sporesDrift {
+  0%, 100% { background-position: 0% 0%, 100% 100%, 20% 80%, 0% 0%; opacity: 0.52; }
+  50% { background-position: 8% 6%, 92% 90%, 30% 70%, 0% 0%; opacity: 0.7; }
 }
 
 @media (prefers-reduced-motion: reduce) {

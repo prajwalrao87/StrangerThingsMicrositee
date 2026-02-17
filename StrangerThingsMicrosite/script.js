@@ -18,6 +18,7 @@ const diceHint = document.getElementById('diceHint');
 const upsidePanel = document.getElementById('upside-down');
 const upsidePortal = document.querySelector('.upside-portal');
 const riftSignalLine = document.getElementById('riftSignalLine');
+const frameTargets = Array.from(document.querySelectorAll('.hero, .panel, .ar-scenes, .upside-portal, .site-footer'));
 
 let targetX = 0;
 let targetY = 0;
@@ -25,6 +26,7 @@ let currentX = 0;
 let currentY = 0;
 let parallaxEnabled = true;
 let upsideThemeTimer;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function setActiveLink() {
   const scrollPos = window.scrollY + 140;
@@ -236,6 +238,60 @@ if (footerReveal && 'IntersectionObserver' in window) {
   footerObserver.observe(footerReveal);
 } else if (footerReveal) {
   footerReveal.classList.add('in-view');
+}
+
+if (frameTargets.length) {
+  frameTargets.forEach((el) => {
+    el.classList.add('frame-tilt', 'frame-reveal');
+    el.style.setProperty('--glow-x', '50%');
+    el.style.setProperty('--glow-y', '50%');
+  });
+
+  if (!reduceMotion) {
+    frameTargets.forEach((el) => {
+      let rafId;
+      const handleMove = (event) => {
+        const rect = el.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width;
+        const y = (event.clientY - rect.top) / rect.height;
+        const tiltX = (x - 0.5) * 10;
+        const tiltY = (0.5 - y) * 8;
+
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          el.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+          el.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+          el.style.setProperty('--glow-x', `${(x * 100).toFixed(1)}%`);
+          el.style.setProperty('--glow-y', `${(y * 100).toFixed(1)}%`);
+        });
+      };
+
+      const handleLeave = () => {
+        el.style.setProperty('--tilt-x', '0deg');
+        el.style.setProperty('--tilt-y', '0deg');
+        el.style.setProperty('--glow-x', '50%');
+        el.style.setProperty('--glow-y', '50%');
+      };
+
+      el.addEventListener('pointermove', handleMove);
+      el.addEventListener('pointerleave', handleLeave);
+    });
+  }
+
+  if ('IntersectionObserver' in window) {
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.18 });
+
+    frameTargets.forEach((el) => revealObserver.observe(el));
+  } else {
+    frameTargets.forEach((el) => el.classList.add('is-revealed'));
+  }
 }
 
 animateParallax();

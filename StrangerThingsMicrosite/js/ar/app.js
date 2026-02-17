@@ -203,15 +203,20 @@ export function initArExperience() {
       });
       arCaptureVideo.srcObject = stream;
       await arCaptureVideo.play();
-    } catch {
+    } catch (err) {
       arCaptureWrap.classList.remove('open');
       arCaptureWrap.setAttribute('aria-hidden', 'true');
       arPanel.classList.remove('is-camera-open');
-      arCaptureNote.textContent = 'Camera access is blocked. Allow camera permission and retry.';
+      const errName = err && typeof err === 'object' && 'name' in err ? err.name : 'UnknownError';
+      arCaptureNote.textContent = `Camera access failed (${errName}). Allow camera permission and retry.`;
+      console.error('Camera start failed:', err);
     }
   };
 
   const stopCamera = () => {
+    if (document.activeElement && arCaptureWrap.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
       stream = null;
@@ -227,6 +232,7 @@ export function initArExperience() {
     }
     resetCaptureState();
     syncStagePreview();
+    arLaunchBtn?.focus();
   };
 
   const renderCurrentBlend = async () => {

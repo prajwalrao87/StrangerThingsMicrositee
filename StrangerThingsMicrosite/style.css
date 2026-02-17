@@ -247,6 +247,59 @@ main {
   backdrop-filter: blur(5px);
 }
 
+.frame-tilt {
+  position: relative;
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --tilt-lift: 0px;
+  --glow-x: 50%;
+  --glow-y: 50%;
+  transform: perspective(1200px) rotateX(var(--tilt-y)) rotateY(var(--tilt-x)) translateY(var(--tilt-lift));
+  transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.frame-tilt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(circle at var(--glow-x) var(--glow-y), rgba(255, 255, 255, 0.1), transparent 45%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity 260ms ease;
+  z-index: 1;
+}
+
+.frame-tilt:hover::after {
+  opacity: 0.7;
+}
+
+.frame-tilt:hover {
+  --tilt-lift: -6px;
+}
+
+.panel.frame-tilt,
+.ar-scenes.frame-tilt,
+.upside-portal.frame-tilt,
+.site-footer.frame-tilt {
+  overflow: hidden;
+}
+
+.frame-reveal {
+  opacity: 0;
+  filter: blur(2px);
+  transform: perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(8px);
+  transition: opacity 700ms ease, filter 700ms ease, transform 700ms ease;
+}
+
+.frame-reveal.is-revealed {
+  opacity: 1;
+  filter: none;
+  transform: perspective(1200px) rotateX(var(--tilt-y)) rotateY(var(--tilt-x)) translateY(var(--tilt-lift));
+}
+
 .panel h3 {
   margin: 0 0 0.8rem;
   font-family: "Cinzel", serif;
@@ -1078,40 +1131,101 @@ body.upside-down .upside-exit {
 }
 
 body.upside-theme {
-  --bg-soft: #11161f;
-  --panel: rgba(13, 17, 24, 0.82);
-  --line: rgba(126, 150, 176, 0.28);
-  --text: #d7dde7;
-  --muted: #abb6c5;
-  background: radial-gradient(circle at 60% 15%, rgba(170, 26, 43, 0.22), transparent 34%),
-    radial-gradient(circle at 15% 10%, rgba(50, 68, 96, 0.35), transparent 42%),
-    linear-gradient(160deg, #06080d, #101722 45%, #111620 72%, #170f14);
+  --bg-soft: #0e1623;
+  --panel: rgba(10, 16, 28, 0.84);
+  --line: rgba(120, 160, 204, 0.32);
+  --text: #d6e1f1;
+  --muted: #a9b9d2;
+  background:
+    radial-gradient(circle at 70% 18%, rgba(54, 122, 214, 0.24), transparent 36%),
+    radial-gradient(circle at 15% 26%, rgba(24, 48, 96, 0.45), transparent 44%),
+    linear-gradient(160deg, #05070d, #0b1828 46%, #0a1322 72%, #0c0d13);
 }
 
 body.upside-theme .site-bg {
   background:
-    radial-gradient(circle at 80% 15%, rgba(255, 54, 72, 0.22), transparent 40%),
-    radial-gradient(circle at 15% 30%, rgba(61, 88, 126, 0.38), transparent 42%),
-    linear-gradient(180deg, rgba(8, 11, 19, 0.5), rgba(8, 10, 17, 0.75));
+    radial-gradient(circle at 80% 15%, rgba(92, 164, 255, 0.26), transparent 40%),
+    radial-gradient(circle at 12% 32%, rgba(26, 58, 112, 0.5), transparent 44%),
+    linear-gradient(180deg, rgba(6, 10, 18, 0.6), rgba(6, 9, 16, 0.78));
 }
 
 body.upside-theme .topbar-inner {
-  border-color: rgba(117, 149, 177, 0.35);
-  background: linear-gradient(90deg, rgba(15, 24, 39, 0.92), rgba(30, 33, 58, 0.88), rgba(18, 26, 41, 0.92));
+  border-color: rgba(112, 156, 205, 0.45);
+  background: linear-gradient(90deg, rgba(12, 24, 44, 0.95), rgba(19, 30, 54, 0.92), rgba(12, 24, 44, 0.95));
 }
 
 body.upside-theme .title-five {
-  color: rgba(38, 57, 94, 0.45);
-  text-shadow: 0 0 28px rgba(255, 30, 44, 0.25);
+  color: rgba(56, 96, 156, 0.5);
+  text-shadow: 0 0 28px rgba(70, 130, 220, 0.3);
 }
 
 body.upside-theme .title-line {
-  -webkit-text-stroke: 1.6px rgba(226, 44, 61, 0.96);
-  text-stroke: 1.6px rgba(226, 44, 61, 0.96);
+  -webkit-text-stroke: 1.6px rgba(112, 182, 255, 0.95);
+  text-stroke: 1.6px rgba(112, 182, 255, 0.95);
+  text-shadow:
+    0 0 6px rgba(112, 182, 255, 0.38),
+    0 0 18px rgba(60, 120, 210, 0.32);
+}
+
+body.upside-theme .menu a:hover,
+body.upside-theme .menu a.active {
+  text-shadow: 0 0 10px rgba(86, 160, 255, 0.55);
 }
 
 body.upside-theme .btn-primary {
-  background: linear-gradient(140deg, #d83447, #8b1b28);
+  background: linear-gradient(140deg, #3182ff, #1b3f8a);
+  box-shadow: 0 10px 20px rgba(45, 120, 230, 0.35);
+}
+
+body.portal-blue {
+  --bg-soft: #0e1623;
+  --panel: rgba(10, 16, 28, 0.84);
+  --line: rgba(120, 160, 204, 0.32);
+  --text: #d6e1f1;
+  --muted: #a9b9d2;
+  background:
+    radial-gradient(circle at 70% 18%, rgba(54, 122, 214, 0.24), transparent 36%),
+    radial-gradient(circle at 15% 26%, rgba(24, 48, 96, 0.45), transparent 44%),
+    linear-gradient(160deg, #05070d, #0b1828 46%, #0a1322 72%, #0c0d13);
+}
+
+body.portal-blue .site-bg {
+  background:
+    radial-gradient(circle at 80% 15%, rgba(92, 164, 255, 0.26), transparent 40%),
+    radial-gradient(circle at 12% 32%, rgba(26, 58, 112, 0.5), transparent 44%),
+    linear-gradient(180deg, rgba(6, 10, 18, 0.6), rgba(6, 9, 16, 0.78));
+}
+
+body.portal-blue .topbar-inner {
+  border-color: rgba(112, 156, 205, 0.45);
+  background: linear-gradient(90deg, rgba(12, 24, 44, 0.95), rgba(19, 30, 54, 0.92), rgba(12, 24, 44, 0.95));
+}
+
+body.portal-blue .brand span {
+  color: #7ac0ff;
+}
+
+body.portal-blue .title-five {
+  color: rgba(56, 96, 156, 0.5);
+  text-shadow: 0 0 28px rgba(70, 130, 220, 0.3);
+}
+
+body.portal-blue .title-line {
+  -webkit-text-stroke: 1.6px rgba(112, 182, 255, 0.95);
+  text-stroke: 1.6px rgba(112, 182, 255, 0.95);
+  text-shadow:
+    0 0 6px rgba(112, 182, 255, 0.38),
+    0 0 18px rgba(60, 120, 210, 0.32);
+}
+
+body.portal-blue .menu a:hover,
+body.portal-blue .menu a.active {
+  text-shadow: 0 0 10px rgba(86, 160, 255, 0.55);
+}
+
+body.portal-blue .btn-primary {
+  background: linear-gradient(140deg, #3182ff, #1b3f8a);
+  box-shadow: 0 10px 20px rgba(45, 120, 230, 0.35);
 }
 
 .world {
@@ -1246,6 +1360,20 @@ body.upside-theme::before {
     linear-gradient(180deg, rgba(8, 8, 14, 0.32), rgba(7, 9, 13, 0.58));
 }
 
+#upside-down::after {
+  content: "";
+  position: absolute;
+  inset: -20% -15%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.06), transparent 42%),
+    radial-gradient(circle at 70% 70%, rgba(67, 102, 170, 0.16), transparent 45%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent 60%);
+  opacity: 0.35;
+  mix-blend-mode: screen;
+  animation: riftDrift 12s ease-in-out infinite;
+}
+
 .rift-signal {
   margin-top: 1rem;
   display: grid;
@@ -1265,6 +1393,7 @@ body.upside-theme::before {
   border-radius: 10px;
   padding: 0.7rem 0.9rem;
   box-shadow: 0 0 0 1px rgba(128, 19, 31, 0.35) inset;
+  transition: border-color 260ms ease, box-shadow 260ms ease;
 }
 
 .rift-led {
@@ -1309,7 +1438,14 @@ body.upside-theme::before {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(2, 2, 4, 0.02), rgba(2, 2, 4, 0.48));
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.14), transparent 26%),
+    radial-gradient(circle at 70% 65%, rgba(122, 156, 255, 0.16), transparent 30%),
+    radial-gradient(circle at 40% 80%, rgba(255, 78, 102, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(2, 2, 4, 0.08), rgba(2, 2, 4, 0.55));
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  animation: sporesDrift 9s ease-in-out infinite;
 }
 
 .upside-portal::before {
@@ -1342,6 +1478,11 @@ body.upside-theme::before {
   filter: saturate(1.16) contrast(1.14) brightness(0.7);
 }
 
+#upside-down:hover .rift-signal {
+  border-color: rgba(255, 92, 116, 0.55);
+  box-shadow: 0 0 0 1px rgba(181, 36, 52, 0.45) inset, 0 0 16px rgba(255, 63, 89, 0.25);
+}
+
 @keyframes riftBlink {
   0%, 40%, 100% { opacity: 1; }
   42%, 44%, 72% { opacity: 0.2; }
@@ -1360,10 +1501,28 @@ body.upside-theme::before {
   64%, 70% { opacity: 0.82; }
 }
 
+@keyframes riftDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-2%, 2%, 0) scale(1.02); }
+}
+
+@keyframes sporesDrift {
+  0%, 100% { background-position: 0% 0%, 100% 100%, 20% 80%, 0% 0%; opacity: 0.52; }
+  50% { background-position: 8% 6%, 92% 90%, 30% 70%, 0% 0%; opacity: 0.7; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rift-led,
   .rift-line.glitch,
-  .upside-portal::before {
+  .upside-portal::before,
+  .frame-tilt,
+  .frame-reveal {
     animation: none;
+  }
+
+  .frame-tilt,
+  .frame-reveal {
+    transition: none;
+    transform: none;
   }
 }

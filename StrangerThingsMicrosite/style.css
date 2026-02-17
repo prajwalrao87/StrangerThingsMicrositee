@@ -1078,40 +1078,101 @@ body.upside-down .upside-exit {
 }
 
 body.upside-theme {
-  --bg-soft: #11161f;
-  --panel: rgba(13, 17, 24, 0.82);
-  --line: rgba(126, 150, 176, 0.28);
-  --text: #d7dde7;
-  --muted: #abb6c5;
-  background: radial-gradient(circle at 60% 15%, rgba(170, 26, 43, 0.22), transparent 34%),
-    radial-gradient(circle at 15% 10%, rgba(50, 68, 96, 0.35), transparent 42%),
-    linear-gradient(160deg, #06080d, #101722 45%, #111620 72%, #170f14);
+  --bg-soft: #0e1623;
+  --panel: rgba(10, 16, 28, 0.84);
+  --line: rgba(120, 160, 204, 0.32);
+  --text: #d6e1f1;
+  --muted: #a9b9d2;
+  background:
+    radial-gradient(circle at 70% 18%, rgba(54, 122, 214, 0.24), transparent 36%),
+    radial-gradient(circle at 15% 26%, rgba(24, 48, 96, 0.45), transparent 44%),
+    linear-gradient(160deg, #05070d, #0b1828 46%, #0a1322 72%, #0c0d13);
 }
 
 body.upside-theme .site-bg {
   background:
-    radial-gradient(circle at 80% 15%, rgba(255, 54, 72, 0.22), transparent 40%),
-    radial-gradient(circle at 15% 30%, rgba(61, 88, 126, 0.38), transparent 42%),
-    linear-gradient(180deg, rgba(8, 11, 19, 0.5), rgba(8, 10, 17, 0.75));
+    radial-gradient(circle at 80% 15%, rgba(92, 164, 255, 0.26), transparent 40%),
+    radial-gradient(circle at 12% 32%, rgba(26, 58, 112, 0.5), transparent 44%),
+    linear-gradient(180deg, rgba(6, 10, 18, 0.6), rgba(6, 9, 16, 0.78));
 }
 
 body.upside-theme .topbar-inner {
-  border-color: rgba(117, 149, 177, 0.35);
-  background: linear-gradient(90deg, rgba(15, 24, 39, 0.92), rgba(30, 33, 58, 0.88), rgba(18, 26, 41, 0.92));
+  border-color: rgba(112, 156, 205, 0.45);
+  background: linear-gradient(90deg, rgba(12, 24, 44, 0.95), rgba(19, 30, 54, 0.92), rgba(12, 24, 44, 0.95));
 }
 
 body.upside-theme .title-five {
-  color: rgba(38, 57, 94, 0.45);
-  text-shadow: 0 0 28px rgba(255, 30, 44, 0.25);
+  color: rgba(56, 96, 156, 0.5);
+  text-shadow: 0 0 28px rgba(70, 130, 220, 0.3);
 }
 
 body.upside-theme .title-line {
-  -webkit-text-stroke: 1.6px rgba(226, 44, 61, 0.96);
-  text-stroke: 1.6px rgba(226, 44, 61, 0.96);
+  -webkit-text-stroke: 1.6px rgba(112, 182, 255, 0.95);
+  text-stroke: 1.6px rgba(112, 182, 255, 0.95);
+  text-shadow:
+    0 0 6px rgba(112, 182, 255, 0.38),
+    0 0 18px rgba(60, 120, 210, 0.32);
+}
+
+body.upside-theme .menu a:hover,
+body.upside-theme .menu a.active {
+  text-shadow: 0 0 10px rgba(86, 160, 255, 0.55);
 }
 
 body.upside-theme .btn-primary {
-  background: linear-gradient(140deg, #d83447, #8b1b28);
+  background: linear-gradient(140deg, #3182ff, #1b3f8a);
+  box-shadow: 0 10px 20px rgba(45, 120, 230, 0.35);
+}
+
+body.portal-blue {
+  --bg-soft: #0e1623;
+  --panel: rgba(10, 16, 28, 0.84);
+  --line: rgba(120, 160, 204, 0.32);
+  --text: #d6e1f1;
+  --muted: #a9b9d2;
+  background:
+    radial-gradient(circle at 70% 18%, rgba(54, 122, 214, 0.24), transparent 36%),
+    radial-gradient(circle at 15% 26%, rgba(24, 48, 96, 0.45), transparent 44%),
+    linear-gradient(160deg, #05070d, #0b1828 46%, #0a1322 72%, #0c0d13);
+}
+
+body.portal-blue .site-bg {
+  background:
+    radial-gradient(circle at 80% 15%, rgba(92, 164, 255, 0.26), transparent 40%),
+    radial-gradient(circle at 12% 32%, rgba(26, 58, 112, 0.5), transparent 44%),
+    linear-gradient(180deg, rgba(6, 10, 18, 0.6), rgba(6, 9, 16, 0.78));
+}
+
+body.portal-blue .topbar-inner {
+  border-color: rgba(112, 156, 205, 0.45);
+  background: linear-gradient(90deg, rgba(12, 24, 44, 0.95), rgba(19, 30, 54, 0.92), rgba(12, 24, 44, 0.95));
+}
+
+body.portal-blue .brand span {
+  color: #7ac0ff;
+}
+
+body.portal-blue .title-five {
+  color: rgba(56, 96, 156, 0.5);
+  text-shadow: 0 0 28px rgba(70, 130, 220, 0.3);
+}
+
+body.portal-blue .title-line {
+  -webkit-text-stroke: 1.6px rgba(112, 182, 255, 0.95);
+  text-stroke: 1.6px rgba(112, 182, 255, 0.95);
+  text-shadow:
+    0 0 6px rgba(112, 182, 255, 0.38),
+    0 0 18px rgba(60, 120, 210, 0.32);
+}
+
+body.portal-blue .menu a:hover,
+body.portal-blue .menu a.active {
+  text-shadow: 0 0 10px rgba(86, 160, 255, 0.55);
+}
+
+body.portal-blue .btn-primary {
+  background: linear-gradient(140deg, #3182ff, #1b3f8a);
+  box-shadow: 0 10px 20px rgba(45, 120, 230, 0.35);
 }
 
 .world {

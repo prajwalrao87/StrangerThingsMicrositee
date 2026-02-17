@@ -16,6 +16,7 @@ const diceFace = document.getElementById('diceFace');
 const diceCloseBtn = document.getElementById('diceCloseBtn');
 const diceHint = document.getElementById('diceHint');
 const upsidePanel = document.getElementById('upside-down');
+const upsidePortal = document.querySelector('.upside-portal');
 const riftSignalLine = document.getElementById('riftSignalLine');
 
 let targetX = 0;
@@ -200,6 +201,19 @@ if (upsidePanel) {
   upsidePanel.addEventListener('mouseleave', () => {
     upsidePanel.style.setProperty('--rift-x', '50%');
     upsidePanel.style.setProperty('--rift-y', '50%');
+  });
+}
+
+if (upsidePortal) {
+  const setPortalHue = (event) => {
+    const rect = upsidePortal.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    document.body.classList.toggle('portal-blue', x >= 0.5);
+  };
+
+  upsidePortal.addEventListener('pointermove', setPortalHue);
+  upsidePortal.addEventListener('pointerleave', () => {
+    document.body.classList.remove('portal-blue');
   });
 }
 

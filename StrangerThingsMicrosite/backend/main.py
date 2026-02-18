@@ -140,7 +140,7 @@ async def swap(source: UploadFile = File(...), scene_path: str = Form(...)):
         "box",
         "occlusion",
         "--face-mask-blur",
-        "0.35",
+        "0.2",
         "--face-detector-model",
         "scrfd",
         "--face-detector-score",
@@ -150,7 +150,7 @@ async def swap(source: UploadFile = File(...), scene_path: str = Form(...)):
         "--execution-thread-count",
         EXECUTION_THREAD_COUNT,
         "--output-image-quality",
-        "90",
+        "100",
         "--log-level",
         "info",
     ]

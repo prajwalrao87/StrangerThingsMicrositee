@@ -1,9 +1,11 @@
 let arUiReady = false;
 const AR_DEFAULT_PREVIEW = 'assets/cast/eleven.jpg';
-const SWAP_API_URL = '/api/swap';
-const SWAP_API_FALLBACK_URL = 'http://127.0.0.1:8000/swap';
-const SWAP_TIMEOUT_MS = 180000;
-const CAPTURE_MAX_WIDTH = 1024;
+const HF_SPACE_BASE_URL = 'https://musicutilist-face-integr.hf.space';
+const HF_SWAP_API_PATH = '/run/predict';
+const SWAP_TIMEOUT_MS = 240000;
+const CAPTURE_MAX_WIDTH = 1280;
+const CAPTURE_JPEG_QUALITY = 0.96;
+const FACE_ENHANCE_DEFAULT = true;
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -21,12 +23,6 @@ function getSceneImageSrc(arSceneButtons) {
   return img?.getAttribute('src') || null;
 }
 
-function sceneSrcToAssetPath(sceneSrc) {
-  if (!sceneSrc) return null;
-  const normalized = new URL(sceneSrc, window.location.href).pathname.replace(/^\/+/, '');
-  return normalized.startsWith('assets/') ? normalized : null;
-}
-
 function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.96) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -36,52 +32,99 @@ function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.96) {
   });
 }
 
-async function renderHostedSwap({ outCanvas, sourceBlob, sceneAssetPath }) {
-  const postWithTimeout = async (url, payloadFactory) => {
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), SWAP_TIMEOUT_MS);
-    try {
-      return await fetch(url, {
-        method: 'POST',
-        body: payloadFactory(),
-        signal: controller.signal
-      });
-    } finally {
-      window.clearTimeout(timeoutId);
-    }
-  };
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Failed to read image data'));
+    reader.readAsDataURL(blob);
+  });
+}
 
-  const makePayload = () => {
-    const formData = new FormData();
-    formData.append('source', sourceBlob, 'capture.jpg');
-    formData.append('scene_path', sceneAssetPath);
-    return formData;
-  };
+function normalizeOutputImageSrc(output) {
+  if (typeof output !== 'string' || !output) return '';
+  if (output.startsWith('data:image/')) return output;
+  if (output.startsWith('http://') || output.startsWith('https://')) return output;
+  return `data:image/png;base64,${output}`;
+}
 
+function extractImageFromPredictResponse(result) {
+  const payload = result?.data?.[0];
+  if (typeof payload === 'string') return normalizeOutputImageSrc(payload);
+  if (payload && typeof payload === 'object') {
+    return normalizeOutputImageSrc(payload.data || payload.url || payload.path || '');
+  }
+  return '';
+}
+
+async function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to decode image'));
+    img.src = src;
+  });
+}
+
+async function callSwapEndpoint(sourceValue, targetValue, enhance) {
+  const payload = JSON.stringify({
+    data: [sourceValue, targetValue, !!enhance]
+  });
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), SWAP_TIMEOUT_MS);
   let response;
   try {
-    response = await postWithTimeout(SWAP_API_URL, makePayload);
-  } catch {
-    response = await postWithTimeout(SWAP_API_FALLBACK_URL, makePayload);
+    response = await fetch(`${HF_SPACE_BASE_URL}${HF_SWAP_API_PATH}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      signal: controller.signal
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
   }
+  if (!response.ok) throw new Error(`Swap failed (${response.status})`);
+  const result = await response.json();
+  const outputSrc = extractImageFromPredictResponse(result);
+  if (!outputSrc) throw new Error('Swap response did not include an output image.');
+  return outputSrc;
+}
 
-  if (response.status === 404 && SWAP_API_URL !== SWAP_API_FALLBACK_URL) {
-    response = await postWithTimeout(SWAP_API_FALLBACK_URL, makePayload);
+export async function swapFaces(sourceBase64, targetBase64, enhance = true) {
+  const bestOutput = await callSwapEndpoint(sourceBase64, targetBase64, enhance);
+  const resultImage = document.getElementById('result');
+  if (resultImage) {
+    resultImage.src = bestOutput;
+    resultImage.style.display = 'block';
   }
+  return bestOutput;
+}
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `Swap failed (${response.status})`);
-  }
+if (typeof window !== 'undefined') {
+  window.swapFaces = swapFaces;
+}
 
-  const outBlob = await response.blob();
-  const imageBitmap = await createImageBitmap(outBlob);
-  outCanvas.width = imageBitmap.width;
-  outCanvas.height = imageBitmap.height;
+async function renderHostedSwap({ outCanvas, sourceBlob, sceneSrc }) {
+  const sourceBase64 = await blobToDataUrl(sourceBlob);
+  const targetBlob = await fetch(sceneSrc).then((response) => {
+    if (!response.ok) {
+      throw new Error(`Failed to load scene (${response.status})`);
+    }
+    return response.blob();
+  });
+  const targetBase64 = await blobToDataUrl(targetBlob);
+  const outputSrc = await swapFaces(sourceBase64, targetBase64, FACE_ENHANCE_DEFAULT);
+  return drawImageToCanvas(outputSrc, outCanvas);
+}
+
+async function drawImageToCanvas(outputSrc, outCanvas) {
+  const outputImage = await loadImage(outputSrc);
+  outCanvas.width = outputImage.naturalWidth || outputImage.width;
+  outCanvas.height = outputImage.naturalHeight || outputImage.height;
   const ctx = outCanvas.getContext('2d');
   ctx.clearRect(0, 0, outCanvas.width, outCanvas.height);
-  ctx.drawImage(imageBitmap, 0, 0);
-  imageBitmap.close();
+  ctx.drawImage(outputImage, 0, 0, outCanvas.width, outCanvas.height);
+  return outputSrc;
 }
 
 function applyArSceneDepth(arSceneButtons) {
@@ -119,6 +162,7 @@ export function initArExperience() {
   const arStage = document.getElementById('arStage');
   const arLaunchImage = document.querySelector('#arLaunchBtn img');
   const arCaptureShell = document.querySelector('.ar-capture-shell');
+  const arResultImage = document.getElementById('result');
   const arProcessing = document.getElementById('arProcessing');
   const arProcessingTitle = document.querySelector('#arProcessing strong');
   const arProcessingSub = document.querySelector('#arProcessing small');
@@ -146,6 +190,10 @@ export function initArExperience() {
   const resetCaptureState = () => {
     arCaptureShell.classList.remove('is-processing', 'is-result');
     arProcessing.setAttribute('aria-hidden', 'true');
+    if (arResultImage) {
+      arResultImage.removeAttribute('src');
+      arResultImage.style.display = 'none';
+    }
     captureState = null;
   };
 
@@ -233,13 +281,10 @@ export function initArExperience() {
     if (!captureState) return;
     const sceneSrc = getSceneImageSrc(arSceneButtons);
     if (!sceneSrc) throw new Error('No scene selected');
-    const sceneAssetPath = sceneSrcToAssetPath(sceneSrc);
-    if (!sceneAssetPath) throw new Error('Invalid scene path');
-
     await renderHostedSwap({
       outCanvas: arBlendCanvas,
       sourceBlob: captureState.frameBlob,
-      sceneAssetPath
+      sceneSrc
     });
     syncStageLayout();
     syncStagePreview();
@@ -280,7 +325,7 @@ export function initArExperience() {
       const fctx = frameCanvas.getContext('2d');
       fctx.drawImage(arCaptureVideo, 0, 0, frameCanvas.width, frameCanvas.height);
 
-      const frameBlob = await canvasToBlob(frameCanvas, 'image/jpeg', 0.96);
+      const frameBlob = await canvasToBlob(frameCanvas, 'image/jpeg', CAPTURE_JPEG_QUALITY);
       captureState = { frameBlob };
       await renderCurrentBlend();
 

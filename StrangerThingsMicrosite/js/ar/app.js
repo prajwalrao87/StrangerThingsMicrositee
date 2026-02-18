@@ -1,10 +1,9 @@
-import { segmentFrame } from './segment.js';
-import { detectFaceMesh, getPointPx, OVAL_IDX } from './facemesh.js';
-import { detectFaceBox } from './face.js';
-import { renderFaceBlend } from './blend.js';
-
-let arSegmenterReady = false;
+let arUiReady = false;
 const AR_DEFAULT_PREVIEW = 'assets/cast/eleven.jpg';
+const SWAP_API_URL = '/api/swap';
+const SWAP_API_FALLBACK_URL = 'http://127.0.0.1:8000/swap';
+const SWAP_TIMEOUT_MS = 180000;
+const CAPTURE_MAX_WIDTH = 1024;
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -22,56 +21,67 @@ function getSceneImageSrc(arSceneButtons) {
   return img?.getAttribute('src') || null;
 }
 
-function ovalMaskFromMeshCanvas(mesh, featherPx = 8) {
-  const c = document.createElement('canvas');
-  c.width = mesh.w;
-  c.height = mesh.h;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  OVAL_IDX.forEach((idx, i) => {
-    const p = getPointPx(mesh, idx);
-    if (i === 0) ctx.moveTo(p.x, p.y);
-    else ctx.lineTo(p.x, p.y);
-  });
-  ctx.closePath();
-  ctx.fill();
-
-  const b = document.createElement('canvas');
-  b.width = mesh.w;
-  b.height = mesh.h;
-  const bctx = b.getContext('2d');
-  bctx.filter = `blur(${Math.round(featherPx)}px)`;
-  bctx.drawImage(c, 0, 0);
-  return b;
+function sceneSrcToAssetPath(sceneSrc) {
+  if (!sceneSrc) return null;
+  const normalized = new URL(sceneSrc, window.location.href).pathname.replace(/^\/+/, '');
+  return normalized.startsWith('assets/') ? normalized : null;
 }
 
-function multiplyMaskCanvases(maskA, maskB) {
-  const w = maskA.width;
-  const h = maskA.height;
-  const out = document.createElement('canvas');
-  out.width = w;
-  out.height = h;
+function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.96) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) reject(new Error('Could not create image blob'));
+      else resolve(blob);
+    }, type, quality);
+  });
+}
 
-  const cA = maskA.getContext('2d', { willReadFrequently: true });
-  const cB = maskB.getContext('2d', { willReadFrequently: true });
-  const outCtx = out.getContext('2d');
-  const aData = cA.getImageData(0, 0, w, h).data;
-  const bData = cB.getImageData(0, 0, w, h).data;
+async function renderHostedSwap({ outCanvas, sourceBlob, sceneAssetPath }) {
+  const postWithTimeout = async (url, payloadFactory) => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), SWAP_TIMEOUT_MS);
+    try {
+      return await fetch(url, {
+        method: 'POST',
+        body: payloadFactory(),
+        signal: controller.signal
+      });
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  };
 
-  const buffer = new Uint8ClampedArray(w * h * 4);
-  for (let i = 0; i < buffer.length; i += 4) {
-    const aa = aData[i + 3] / 255;
-    const ba = bData[i + 3] / 255;
-    const v = Math.round(aa * ba * 255);
-    buffer[i] = 255;
-    buffer[i + 1] = 255;
-    buffer[i + 2] = 255;
-    buffer[i + 3] = v;
+  const makePayload = () => {
+    const formData = new FormData();
+    formData.append('source', sourceBlob, 'capture.jpg');
+    formData.append('scene_path', sceneAssetPath);
+    return formData;
+  };
+
+  let response;
+  try {
+    response = await postWithTimeout(SWAP_API_URL, makePayload);
+  } catch {
+    response = await postWithTimeout(SWAP_API_FALLBACK_URL, makePayload);
   }
 
-  outCtx.putImageData(new ImageData(buffer, w, h), 0, 0);
-  return out;
+  if (response.status === 404 && SWAP_API_URL !== SWAP_API_FALLBACK_URL) {
+    response = await postWithTimeout(SWAP_API_FALLBACK_URL, makePayload);
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Swap failed (${response.status})`);
+  }
+
+  const outBlob = await response.blob();
+  const imageBitmap = await createImageBitmap(outBlob);
+  outCanvas.width = imageBitmap.width;
+  outCanvas.height = imageBitmap.height;
+  const ctx = outCanvas.getContext('2d');
+  ctx.clearRect(0, 0, outCanvas.width, outCanvas.height);
+  ctx.drawImage(imageBitmap, 0, 0);
+  imageBitmap.close();
 }
 
 function applyArSceneDepth(arSceneButtons) {
@@ -123,23 +133,7 @@ export function initArExperience() {
   let blendInFlight = false;
   let stripTargetX = 0;
   let stripCurrentX = 0;
-  const bgMeshCache = new Map();
-  const bgFaceCache = new Map();
   const STRIP_LERP = 0.18;
-
-  const getBgMesh = async (sceneSrc, bgImage) => {
-    if (bgMeshCache.has(sceneSrc)) return bgMeshCache.get(sceneSrc);
-    const mesh = await detectFaceMesh(bgImage);
-    bgMeshCache.set(sceneSrc, mesh || null);
-    return mesh || null;
-  };
-
-  const getBgFace = async (sceneSrc, bgImage) => {
-    if (bgFaceCache.has(sceneSrc)) return bgFaceCache.get(sceneSrc);
-    const face = await detectFaceBox(bgImage);
-    bgFaceCache.set(sceneSrc, face || null);
-    return face || null;
-  };
 
   const animateStrip = () => {
     if (arScenesStrip) {
@@ -239,16 +233,13 @@ export function initArExperience() {
     if (!captureState) return;
     const sceneSrc = getSceneImageSrc(arSceneButtons);
     if (!sceneSrc) throw new Error('No scene selected');
+    const sceneAssetPath = sceneSrcToAssetPath(sceneSrc);
+    if (!sceneAssetPath) throw new Error('Invalid scene path');
 
-    await renderFaceBlend({
+    await renderHostedSwap({
       outCanvas: arBlendCanvas,
-      sceneSrc,
-      frameCanvas: captureState.frameCanvas,
-      maskCanvas: captureState.maskCanvas,
-      userMesh: captureState.userMesh,
-      userFace: captureState.userFace,
-      getBgMesh,
-      getBgFace
+      sourceBlob: captureState.frameBlob,
+      sceneAssetPath
     });
     syncStageLayout();
     syncStagePreview();
@@ -281,31 +272,30 @@ export function initArExperience() {
 
     try {
       const frameCanvas = document.createElement('canvas');
-      frameCanvas.width = arCaptureVideo.videoWidth || 1280;
-      frameCanvas.height = arCaptureVideo.videoHeight || 720;
+      const rawWidth = arCaptureVideo.videoWidth || 1280;
+      const rawHeight = arCaptureVideo.videoHeight || 720;
+      const scale = rawWidth > CAPTURE_MAX_WIDTH ? CAPTURE_MAX_WIDTH / rawWidth : 1;
+      frameCanvas.width = Math.max(1, Math.round(rawWidth * scale));
+      frameCanvas.height = Math.max(1, Math.round(rawHeight * scale));
       const fctx = frameCanvas.getContext('2d');
       fctx.drawImage(arCaptureVideo, 0, 0, frameCanvas.width, frameCanvas.height);
 
-      const segMask = await segmentFrame(frameCanvas);
-      const userMesh = await detectFaceMesh(frameCanvas, frameCanvas.width, frameCanvas.height);
-      const userFace = await detectFaceBox(frameCanvas, frameCanvas.width, frameCanvas.height);
-      let maskCanvas = segMask;
-      if (userMesh) {
-        const ovalMask = ovalMaskFromMeshCanvas(userMesh, 8);
-        maskCanvas = multiplyMaskCanvases(segMask, ovalMask);
-      }
-
-      captureState = { frameCanvas, maskCanvas, userMesh, userFace };
+      const frameBlob = await canvasToBlob(frameCanvas, 'image/jpeg', 0.96);
+      captureState = { frameBlob };
       await renderCurrentBlend();
 
       arCaptureShell.classList.remove('is-processing');
       arCaptureShell.classList.add('is-result');
       arProcessing.setAttribute('aria-hidden', 'true');
       arCaptureNote.textContent = `Scene blended: ${sceneName}.`;
-    } catch {
+    } catch (error) {
       arCaptureShell.classList.remove('is-processing');
       arProcessing.setAttribute('aria-hidden', 'true');
-      arCaptureNote.textContent = 'Blend failed. Please capture again and allow camera access.';
+      const detail = error instanceof Error && error.name === 'AbortError'
+        ? 'Request timed out. Backend is busy or unreachable.'
+        : (error instanceof Error ? error.message : '');
+      arCaptureNote.textContent = `Swap failed. ${detail}`.trim();
+      console.error('Swap failed:', error);
     } finally {
       blendInFlight = false;
     }
@@ -374,8 +364,8 @@ export function initArExperience() {
     }
   });
 
-  if (!arSegmenterReady) {
-    arSegmenterReady = true;
+  if (!arUiReady) {
+    arUiReady = true;
     animateStrip();
   }
 }

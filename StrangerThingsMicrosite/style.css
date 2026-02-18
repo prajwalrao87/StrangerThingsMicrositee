@@ -715,6 +715,17 @@ main {
   background: #060508;
 }
 
+#result {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  pointer-events: none;
+  background: #060508;
+}
+
 .ar-capture-shell.is-result #arBlendCanvas {
   opacity: 1;
 }

@@ -131,7 +131,7 @@ async def swap(source: UploadFile = File(...), scene_path: str = Form(...)):
         "--face-swapper-model",
         "inswapper_128",
         "--face-swapper-pixel-boost",
-        "256x256",
+        "1024x1024",
         "--face-selector-mode",
         "one",
         "--face-selector-order",

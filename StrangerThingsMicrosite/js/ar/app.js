@@ -2,14 +2,18 @@ import { detectFaceBox } from './face.js';
 
 let arUiReady = false;
 const AR_DEFAULT_PREVIEW = 'assets/cast/eleven.jpg';
-const HF_SPACE_BASE_URL = 'https://musicutilist-face-integr.hf.space';
-const HF_SWAP_API_PATH = '/run/predict';
+const HF_SPACE_ID = 'akashh89/FaceIntegrator';
+const GRADIO_PREDICT_API = '/swap_face';
 const SWAP_TIMEOUT_MS = 240000;
 const CAPTURE_MAX_WIDTH = 1280;
 const CAPTURE_JPEG_QUALITY = 0.96;
 const FACE_ENHANCE_DEFAULT = true;
 const FACE_DETECT_MIN_AREA_RATIO = 0.055;
 const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
+const GRADIO_CLIENT_CDN = 'https://cdn.jsdelivr.net/npm/@gradio/client/+esm';
+
+let gradioClientPromise = null;
+let gradioApiInfoPromise = null;
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -52,11 +56,31 @@ function normalizeOutputImageSrc(output) {
   return `data:image/png;base64,${output}`;
 }
 
+function dataUrlToBlob(dataUrl) {
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return null;
+  const parts = dataUrl.split(',');
+  if (parts.length !== 2) return null;
+  const mime = (parts[0].match(/data:(.*?);base64/) || [])[1] || 'image/jpeg';
+  const binary = atob(parts[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
 function extractImageFromPredictResponse(result) {
-  const payload = result?.data?.[0];
+  const payload = result?.data?.[0] ?? result?.data ?? result;
   if (typeof payload === 'string') return normalizeOutputImageSrc(payload);
+  if (Array.isArray(payload)) {
+    for (const item of payload) {
+      const nested = extractImageFromPredictResponse({ data: [item] });
+      if (nested) return nested;
+    }
+    return '';
+  }
   if (payload && typeof payload === 'object') {
-    return normalizeOutputImageSrc(payload.data || payload.url || payload.path || '');
+    return normalizeOutputImageSrc(payload.data || payload.url || payload.path || payload.image || '');
   }
   return '';
 }
@@ -70,32 +94,82 @@ async function loadImage(src) {
   });
 }
 
-async function callSwapEndpoint(sourceValue, targetValue, enhance) {
-  const payload = JSON.stringify({
-    data: [sourceValue, targetValue, !!enhance]
-  });
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), SWAP_TIMEOUT_MS);
-  let response;
-  try {
-    response = await fetch(`${HF_SPACE_BASE_URL}${HF_SWAP_API_PATH}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload,
-      signal: controller.signal
-    });
-  } finally {
-    window.clearTimeout(timeoutId);
+async function getGradioClient() {
+  if (!gradioClientPromise) {
+    gradioClientPromise = import(GRADIO_CLIENT_CDN)
+      .then(({ Client }) => Client.connect(HF_SPACE_ID));
   }
-  if (!response.ok) throw new Error(`Swap failed (${response.status})`);
-  const result = await response.json();
-  const outputSrc = extractImageFromPredictResponse(result);
-  if (!outputSrc) throw new Error('Swap response did not include an output image.');
-  return outputSrc;
+  return gradioClientPromise;
 }
 
-export async function swapFaces(sourceBase64, targetBase64, enhance = true) {
-  const bestOutput = await callSwapEndpoint(sourceBase64, targetBase64, enhance);
+async function getGradioApiInfo(client) {
+  if (!gradioApiInfoPromise) {
+    gradioApiInfoPromise = client.view_api();
+  }
+  return gradioApiInfoPromise;
+}
+
+function toEndpointCandidates(apiInfo) {
+  const candidates = [
+    { type: 'named', value: GRADIO_PREDICT_API }, // from your config: api_name = "swap_face"
+    { type: 'index', value: 2 } // from your config: dependency id 2 (public swap)
+  ];
+
+  const named = apiInfo?.named_endpoints || {};
+  if (named['/swap_face']) {
+    return candidates;
+  }
+
+  // Fallback if API schema changes in future.
+  Object.keys(named).forEach((apiName) => {
+    if (apiName !== '/swap_face') candidates.push({ type: 'named', value: apiName });
+  });
+  return candidates;
+}
+
+async function callSwapEndpoint(sourceBlob, targetBlob, enhance) {
+  const client = await getGradioClient();
+  const apiInfo = await getGradioApiInfo(client);
+  const sourceFile = new File([sourceBlob], 'source-face.jpg', { type: sourceBlob.type || 'image/jpeg' });
+  const targetFile = new File([targetBlob], 'target-scene.jpg', { type: targetBlob.type || 'image/jpeg' });
+  const payloadArr = [sourceFile, targetFile, !!enhance];
+  const endpointCandidates = toEndpointCandidates(apiInfo);
+
+  let lastError = null;
+
+  for (const endpoint of endpointCandidates) {
+    const timeoutPromise = new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error('Swap request timed out.')), SWAP_TIMEOUT_MS);
+    });
+    try {
+      const callPromise = endpoint.type === 'named'
+        ? client.predict(endpoint.value, payloadArr)
+        : client.predict(endpoint.value, payloadArr);
+      const result = await Promise.race([callPromise, timeoutPromise]);
+      const outputSrc = extractImageFromPredictResponse(result);
+      if (!outputSrc) {
+        lastError = new Error('Swap response did not include an output image.');
+        continue;
+      }
+      return outputSrc;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError instanceof Error) {
+    throw new Error(`Swap failed. ${lastError.message}`);
+  }
+  throw new Error('Swap failed. No matching Gradio endpoint was found.');
+}
+
+export async function swapFaces(sourceInput, targetInput, enhance = true) {
+  const sourceBlob = sourceInput instanceof Blob ? sourceInput : dataUrlToBlob(sourceInput);
+  const targetBlob = targetInput instanceof Blob ? targetInput : dataUrlToBlob(targetInput);
+  if (!sourceBlob || !targetBlob) {
+    throw new Error('swapFaces expects Blob or data:image base64 inputs.');
+  }
+  const bestOutput = await callSwapEndpoint(sourceBlob, targetBlob, enhance);
   const resultImage = document.getElementById('result');
   if (resultImage) {
     resultImage.src = bestOutput;
@@ -109,15 +183,18 @@ if (typeof window !== 'undefined') {
 }
 
 async function renderHostedSwap({ outCanvas, sourceBlob, sceneSrc }) {
-  const sourceBase64 = await blobToDataUrl(sourceBlob);
   const targetBlob = await fetch(sceneSrc).then((response) => {
     if (!response.ok) {
       throw new Error(`Failed to load scene (${response.status})`);
     }
     return response.blob();
   });
-  const targetBase64 = await blobToDataUrl(targetBlob);
-  const outputSrc = await swapFaces(sourceBase64, targetBase64, FACE_ENHANCE_DEFAULT);
+  const outputSrc = await callSwapEndpoint(sourceBlob, targetBlob, FACE_ENHANCE_DEFAULT);
+  const resultImage = document.getElementById('result');
+  if (resultImage) {
+    resultImage.src = outputSrc;
+    resultImage.style.display = 'block';
+  }
   return drawImageToCanvas(outputSrc, outCanvas);
 }
 

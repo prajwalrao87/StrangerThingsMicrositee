@@ -18,6 +18,7 @@ const diceBtn = document.getElementById('diceBtn');
 const diceFace = document.getElementById('diceFace');
 const diceCloseBtn = document.getElementById('diceCloseBtn');
 const diceHint = document.getElementById('diceHint');
+const arLaunchImage = document.querySelector('#arLaunchBtn img');
 const upsidePanel = document.getElementById('upside-down');
 const upsidePortal = document.querySelector('.upside-portal');
 const riftSignalLine = document.getElementById('riftSignalLine');
@@ -25,6 +26,15 @@ const frameTargets = Array.from(document.querySelectorAll('.hero, .panel:not(.pa
 
 if (diceOverlay && diceOverlay.parentElement !== document.body) {
   document.body.appendChild(diceOverlay);
+}
+
+if (arLaunchImage) {
+  arLaunchImage.addEventListener('error', () => {
+    arLaunchImage.classList.add('is-broken');
+  }, { once: true });
+  arLaunchImage.addEventListener('load', () => {
+    arLaunchImage.classList.remove('is-broken');
+  });
 }
 
 const navEntry = performance.getEntriesByType('navigation')[0];

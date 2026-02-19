@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -18,7 +18,7 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="topbar-row topbar-main">
-        <marquee><a class="brand" href="#home">STRANGER <span>THINGS 5</span></a></marquee>
+        <a class="brand" href="#home">STRANGER <span>THINGS 5</span></a>
         <div class="nav-actions">
           <span class="season-chip">Final Season</span>
           <button class="btn btn-primary btn-small" data-open-trailer>Watch Trailer</button>
@@ -58,11 +58,48 @@
     </section>
 
     <section class="panel" id="about">
-      <h3>About</h3>
-      <p>
-        Season 5 is the last chapter of Stranger Things. Hawkins and the Upside Down collide,
-        and every character faces a final choice.
-      </p>
+      <p class="about-kicker">THE STORY</p>
+      <h3 class="about-title">About The Series</h3>
+      <div class="about-layout">
+        <div class="about-copy-wrap">
+          <p class="about-copy">
+            Stranger Things follows a group of friends in Hawkins, Indiana as supernatural events,
+            hidden experiments, and the dark dimension known as the Upside Down reshape their lives.
+            What begins as a missing-kid mystery grows into a high-stakes battle against Vecna and
+            forces beyond their world.
+          </p>
+          <p class="about-copy">
+            Across five seasons, the story combines horror, science fiction, and coming-of-age drama.
+            The final chapter pushes every character toward one last confrontation to protect Hawkins.
+          </p>
+          <div class="about-tags" aria-label="Genres">
+            <span>Sci-Fi</span>
+            <span>Supernatural Horror</span>
+            <span>Drama</span>
+            <span>Coming-of-Age</span>
+          </div>
+        </div>
+        <div class="about-meta" aria-label="Series facts">
+          <article class="about-meta-card">
+            <small>IMDb Rating</small>
+            <strong>8.6 / 10</strong>
+            <a href="https://www.imdb.com/title/tt4574334/ratings/" target="_blank" rel="noopener noreferrer">Source: IMDb</a>
+          </article>
+          <article class="about-meta-card">
+            <small>Votes</small>
+            <strong>1.6M</strong>
+            <a href="https://www.imdb.com/title/tt4574334/ratings/" target="_blank" rel="noopener noreferrer">User ratings</a>
+          </article>
+          <article class="about-meta-card">
+            <small>Creators</small>
+            <strong>Matt Duffer, Ross Duffer</strong>
+          </article>
+          <article class="about-meta-card">
+            <small>Runtime</small>
+            <strong>Approx. 1h / episode</strong>
+          </article>
+        </div>
+      </div>
     </section>
 
     <section class="panel" id="cast">
@@ -212,7 +249,17 @@
       <p>
         Watch the official teaser and revisit critical scenes before the final season arrives.
       </p>
-      <button class="btn btn-primary" data-open-trailer>Play Trailer</button>
+      <div class="actions">
+        <button class="btn btn-primary" data-open-trailer>Play Trailer</button>
+        <a
+          class="btn btn-primary"
+          href="https://www.netflix.com/title/80057281"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Watch on Netflix
+        </a>
+      </div>
     </section>
   </main>
 

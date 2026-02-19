@@ -128,6 +128,10 @@ main {
   padding: 2rem 1rem 5rem;
 }
 
+main section[id] {
+  scroll-margin-top: 130px;
+}
+
 .hero {
   min-height: 74vh;
   display: grid;
@@ -254,9 +258,9 @@ main {
   --tilt-lift: 0px;
   --glow-x: 50%;
   --glow-y: 50%;
-  transform: perspective(1200px) rotateX(var(--tilt-y)) rotateY(var(--tilt-x)) translateY(var(--tilt-lift));
-  transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  will-change: transform;
+  transform: none;
+  transition: none;
+  will-change: auto;
 }
 
 .frame-tilt::after {
@@ -277,7 +281,7 @@ main {
 }
 
 .frame-tilt:hover {
-  --tilt-lift: -6px;
+  --tilt-lift: 0px;
 }
 
 .panel.frame-tilt,
@@ -297,7 +301,7 @@ main {
 .frame-reveal.is-revealed {
   opacity: 1;
   filter: none;
-  transform: perspective(1200px) rotateX(var(--tilt-y)) rotateY(var(--tilt-x)) translateY(var(--tilt-lift));
+  transform: none;
 }
 
 .panel h3 {
@@ -312,6 +316,100 @@ main {
   color: var(--muted);
   font-size: clamp(1rem, 1.5vw, 1.2rem);
   line-height: 1.5;
+}
+
+.about-kicker {
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.34em;
+  font-size: 0.8rem;
+  color: rgba(255, 123, 136, 0.88);
+}
+
+.about-title {
+  margin: 0.45rem 0 1.35rem;
+  text-align: center;
+  font-size: clamp(2rem, 4.2vw, 3.2rem);
+  color: #ffd6db;
+  text-shadow: 0 0 16px rgba(255, 56, 76, 0.22);
+}
+
+.about-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.95fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.about-copy-wrap {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.about-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1.02rem, 1.45vw, 1.28rem);
+  line-height: 1.55;
+}
+
+.about-tags {
+  display: flex;
+  gap: 0.52rem;
+  flex-wrap: wrap;
+}
+
+.about-tags span {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 86, 101, 0.42);
+  border-radius: 7px;
+  padding: 0.32rem 0.62rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgba(255, 226, 230, 0.92);
+  background: rgba(45, 14, 19, 0.62);
+}
+
+.about-meta {
+  display: grid;
+  gap: 0.78rem;
+}
+
+.about-meta-card {
+  border: 1px solid rgba(255, 82, 98, 0.22);
+  border-radius: 10px;
+  padding: 0.82rem 0.9rem;
+  background: linear-gradient(120deg, rgba(28, 10, 14, 0.84), rgba(18, 10, 15, 0.84));
+}
+
+.about-meta-card small {
+  display: block;
+  color: rgba(255, 121, 136, 0.8);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.about-meta-card strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: clamp(1.05rem, 1.35vw, 1.35rem);
+  color: #f7e8eb;
+  line-height: 1.35;
+}
+
+.about-meta-card a {
+  display: inline-block;
+  margin-top: 0.28rem;
+  color: rgba(255, 128, 143, 0.92);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.about-meta-card a:hover {
+  color: #ffd8de;
+  text-decoration: underline;
 }
 
 .panel-ar {
@@ -413,8 +511,9 @@ main {
 .ar-launch-card img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  background: #05050a;
   opacity: 0.88;
   filter: saturate(1.08) contrast(1.07) brightness(0.74);
 }
@@ -477,9 +576,10 @@ main {
 
 .ar-scenes {
   margin: 1rem auto 0;
-  width: min(var(--ar-stage-max), calc(100% - 1rem));
+  width: min(520px, calc(100% - 1rem));
+  max-width: 100%;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(0.35rem, 0.75vw, 0.62rem);
   perspective: 1200px;
   transform-style: preserve-3d;
@@ -699,8 +799,9 @@ main {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center center;
+  background: #05050a;
 }
 
 #arBlendCanvas {
@@ -720,10 +821,10 @@ main {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: none;
   pointer-events: none;
-  background: #060508;
+  background: #05050a;
 }
 
 .ar-capture-shell.is-result #arBlendCanvas {
@@ -987,6 +1088,13 @@ body.upside-down .upside-exit {
   transform: translateY(-2px);
 }
 
+@media (hover: none), (pointer: coarse) {
+  #upsideEnterBtn:hover {
+    transform: none;
+    box-shadow: 0 10px 20px rgba(183, 9, 20, 0.35);
+  }
+}
+
 .btn-primary {
   color: #fff;
   background: linear-gradient(140deg, #ff3847, #b80c17);
@@ -1020,16 +1128,22 @@ body.upside-down .upside-exit {
 .modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.68);
+  background: rgba(0, 0, 0, 0.82);
 }
 
 .modal-content {
   position: relative;
   width: min(800px, 94vw);
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: #12090d;
+  border: 0;
+  background: rgba(8, 4, 8, 0.96);
   padding: 1rem;
+  overflow: visible;
+  box-shadow:
+    0 26px 64px rgba(8, 2, 8, 0.9),
+    0 0 28px rgba(255, 46, 70, 0.42),
+    0 0 56px rgba(255, 42, 66, 0.24);
+  animation: modalAuraPulse 5.2s ease-in-out infinite;
 }
 
 .video-placeholder {
@@ -1251,6 +1365,11 @@ body.upside-down .world {
   transform: rotate(180deg);
 }
 
+body.upside-down .topbar {
+  opacity: 0;
+  pointer-events: none;
+}
+
 body.upside-theme::before {
   content: "";
   position: fixed;
@@ -1312,6 +1431,11 @@ body.upside-theme::before {
     transform: none;
     filter: none;
   }
+
+  .about-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1326,16 +1450,68 @@ body.upside-theme::before {
   }
 
   .menu {
-    gap: 0.5rem 0.9rem;
+    gap: 0.45rem;
+    flex-wrap: nowrap;
+    overflow: visible;
+    white-space: nowrap;
+    justify-content: space-between;
   }
 
-  .btn {
+  .menu a {
+    font-size: 0.95rem;
+  }
+
+  .hero .btn,
+  #trailer .btn {
     width: min(280px, 92vw);
     text-align: center;
   }
 
+  .topbar {
+    padding: 0.75rem 0.7rem 0;
+  }
+
+  .topbar-inner {
+    padding: 0.65rem 0.7rem 0.75rem;
+  }
+
+  .nav-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.55rem;
+  }
+
+  .topbar .nav-actions {
+    display: none;
+  }
+
+  .season-chip {
+    justify-content: center;
+  }
+
+  .topbar .btn {
+    width: 100%;
+    min-width: 0;
+    padding: 0.6rem 0.75rem;
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
   .panel {
     padding: 1.2rem;
+  }
+
+  main section[id] {
+    scroll-margin-top: 165px;
+  }
+
+  #about {
+    min-height: 48vh;
+  }
+
+  .grid-cast {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .upside-game .btn {
@@ -1346,8 +1522,39 @@ body.upside-theme::before {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .panel-ar {
+    --ar-stage-max: min(360px, calc((100dvh - 255px) * 0.67));
+  }
+
+  .ar-stage {
+    width: min(var(--ar-stage-max), calc(100% - 0.35rem));
+  }
+
   .ar-frame-label {
     font-size: 0.82rem;
+  }
+
+  .dice-overlay {
+    padding: 0.7rem;
+  }
+
+  .dice-dialog {
+    width: min(360px, calc(100vw - 1.4rem));
+    padding: 0.85rem 0.8rem 1rem;
+  }
+
+  .dice-dialog p {
+    font-size: 1.45rem;
+    margin: 0.2rem 1.9rem 0.7rem;
+  }
+
+  .dice-btn {
+    width: 84px;
+    height: 84px;
+  }
+
+  #diceHint {
+    font-size: 1.2rem;
   }
 }
 
@@ -1484,12 +1691,14 @@ body.upside-theme::before {
   transition: transform 420ms ease, filter 420ms ease;
 }
 
-#upside-down:hover .upside-portal img {
+#upside-down:hover .upside-portal img,
+body.portal-active #upside-down .upside-portal img {
   transform: scale(1.06);
   filter: saturate(1.16) contrast(1.14) brightness(0.7);
 }
 
-#upside-down:hover .rift-signal {
+#upside-down:hover .rift-signal,
+body.portal-active #upside-down .rift-signal {
   border-color: rgba(255, 92, 116, 0.55);
   box-shadow: 0 0 0 1px rgba(181, 36, 52, 0.45) inset, 0 0 16px rgba(255, 63, 89, 0.25);
 }
@@ -1522,10 +1731,26 @@ body.upside-theme::before {
   50% { background-position: 8% 6%, 92% 90%, 30% 70%, 0% 0%; opacity: 0.7; }
 }
 
+@keyframes modalAuraPulse {
+  0%, 100% {
+    box-shadow:
+      0 26px 64px rgba(8, 2, 8, 0.9),
+      0 0 30px rgba(255, 52, 74, 0.48),
+      0 0 62px rgba(255, 44, 68, 0.28);
+  }
+  50% {
+    box-shadow:
+      0 26px 64px rgba(6, 4, 10, 0.9),
+      0 0 34px rgba(70, 146, 255, 0.5),
+      0 0 70px rgba(62, 132, 255, 0.3);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rift-led,
   .rift-line.glitch,
   .upside-portal::before,
+  .modal-content,
   .frame-tilt,
   .frame-reveal {
     animation: none;

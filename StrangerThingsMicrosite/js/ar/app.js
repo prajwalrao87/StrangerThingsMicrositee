@@ -175,14 +175,10 @@ export function initArExperience() {
   let stream = null;
   let captureState = null;
   let blendInFlight = false;
-  let stripTargetX = 0;
-  let stripCurrentX = 0;
-  const STRIP_LERP = 0.18;
 
   const animateStrip = () => {
     if (arScenesStrip) {
-      stripCurrentX += (stripTargetX - stripCurrentX) * STRIP_LERP;
-      arScenesStrip.style.transform = `translate3d(${stripCurrentX}px, 0, 0)`;
+      arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
     requestAnimationFrame(animateStrip);
   };
@@ -221,12 +217,11 @@ export function initArExperience() {
     arPanel.classList.add('is-camera-open');
     syncStageLayout();
     syncStagePreview();
-    stripTargetX = 0;
-    stripCurrentX = 0;
     if (arScenesStrip) {
       arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
-    arPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
+    arPanel.scrollIntoView({ behavior: 'smooth', block: isSmallScreen ? 'start' : 'center' });
 
     if (stream) {
       arCaptureVideo.srcObject = stream;
@@ -267,8 +262,6 @@ export function initArExperience() {
     arCaptureWrap.classList.remove('open');
     arCaptureWrap.setAttribute('aria-hidden', 'true');
     arPanel.classList.remove('is-camera-open');
-    stripTargetX = 0;
-    stripCurrentX = 0;
     if (arScenesStrip) {
       arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
@@ -373,31 +366,10 @@ export function initArExperience() {
   syncStagePreview();
 
   if (arScenesStrip) {
-    const supportsHover = window.matchMedia('(hover: hover)').matches;
-    if (supportsHover) {
-      arScenesStrip.addEventListener('mousemove', (event) => {
-        const rect = arScenesStrip.getBoundingClientRect();
-        const relative = (event.clientX - rect.left) / rect.width;
-        const normalized = (relative - 0.5) * 2;
-        const maxShift = Math.min(58, Math.max(24, rect.width * 0.06));
-        stripTargetX = normalized * maxShift;
-      });
-      arScenesStrip.addEventListener('mouseleave', () => {
-        stripTargetX = 0;
-      });
-    }
     requestAnimationFrame(() => {
       arScenesStrip.classList.add('is-ready');
     });
   }
-
-  window.addEventListener('resize', () => {
-    if (!window.matchMedia('(hover: hover)').matches && arScenesStrip) {
-      stripTargetX = 0;
-      stripCurrentX = 0;
-      arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
-    }
-  });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') stopCamera();

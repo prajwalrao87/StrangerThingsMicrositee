@@ -381,6 +381,35 @@ main section[id] {
   border-radius: 10px;
   padding: 0.82rem 0.9rem;
   background: linear-gradient(120deg, rgba(28, 10, 14, 0.84), rgba(18, 10, 15, 0.84));
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 0.72rem;
+  align-items: start;
+}
+
+.about-meta-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #ffd7dd;
+  background: linear-gradient(145deg, rgba(182, 18, 34, 0.88), rgba(98, 9, 18, 0.88));
+  box-shadow: 0 0 14px rgba(245, 42, 64, 0.35);
+}
+
+.about-meta-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.about-meta-content p {
+  margin: 0.15rem 0 0;
+  color: #ffd3da;
+  font-size: clamp(0.98rem, 1.12vw, 1.1rem);
+  font-weight: 700;
+  line-height: 1.32;
 }
 
 .about-meta-card small {
@@ -401,7 +430,7 @@ main section[id] {
 
 .about-meta-card a {
   display: inline-block;
-  margin-top: 0.28rem;
+  margin-top: 0.32rem;
   color: rgba(255, 128, 143, 0.92);
   text-decoration: none;
   font-size: 0.85rem;
@@ -1683,11 +1712,11 @@ body.upside-theme::before {
 
 .upside-portal img {
   width: 100%;
-  height: clamp(220px, 34vw, 420px);
+  height: auto;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
   filter: saturate(1.12) contrast(1.1) brightness(0.74);
-  transform: scale(1.02);
+  transform: scale(1);
   transition: transform 420ms ease, filter 420ms ease;
 }
 

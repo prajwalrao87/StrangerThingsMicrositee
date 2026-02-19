@@ -2,6 +2,7 @@
 
 const navLinks = Array.from(document.querySelectorAll('.menu a'));
 const sections = Array.from(document.querySelectorAll('main section[id]'));
+const topbar = document.querySelector('.topbar');
 const modal = document.getElementById('trailerModal');
 const openButtons = document.querySelectorAll('[data-open-trailer]');
 const closeButtons = document.querySelectorAll('[data-close-trailer]');
@@ -18,7 +19,11 @@ const diceHint = document.getElementById('diceHint');
 const upsidePanel = document.getElementById('upside-down');
 const upsidePortal = document.querySelector('.upside-portal');
 const riftSignalLine = document.getElementById('riftSignalLine');
-const frameTargets = Array.from(document.querySelectorAll('.hero, .panel, .ar-scenes, .upside-portal, .site-footer'));
+const frameTargets = Array.from(document.querySelectorAll('.hero, .panel:not(.panel-ar), .upside-portal, .site-footer'));
+
+if (diceOverlay && diceOverlay.parentElement !== document.body) {
+  document.body.appendChild(diceOverlay);
+}
 
 let targetX = 0;
 let targetY = 0;
@@ -27,6 +32,7 @@ let currentY = 0;
 let parallaxEnabled = true;
 let upsideThemeTimer;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const mobileOrTouch = window.matchMedia('(max-width: 900px), (hover: none), (pointer: coarse)').matches;
 
 function setActiveLink() {
   const scrollPos = window.scrollY + 140;
@@ -39,6 +45,21 @@ function setActiveLink() {
   navLinks.forEach((link) => {
     const isActive = link.getAttribute('href') === `#${currentId}`;
     link.classList.toggle('active', isActive);
+  });
+}
+
+function scrollToSection(hash) {
+  if (!hash || !hash.startsWith('#')) return;
+  const target = document.querySelector(hash);
+  if (!target) return;
+
+  const topbarHeight = topbar ? topbar.getBoundingClientRect().height : 0;
+  const targetTop = target.getBoundingClientRect().top + window.scrollY;
+  const offset = topbarHeight + 20;
+
+  window.scrollTo({
+    top: Math.max(0, targetTop - offset),
+    behavior: 'smooth'
   });
 }
 
@@ -129,6 +150,16 @@ function animateParallax() {
 
 openButtons.forEach((button) => button.addEventListener('click', openTrailer));
 closeButtons.forEach((button) => button.addEventListener('click', closeTrailer));
+navLinks.forEach((link) => {
+  link.addEventListener('click', (event) => {
+    const hash = link.getAttribute('href');
+    if (!hash || !hash.startsWith('#')) return;
+    event.preventDefault();
+    scrollToSection(hash);
+    history.replaceState(null, '', hash);
+    setActiveLink();
+  });
+});
 
 window.addEventListener('scroll', setActiveLink, { passive: true });
 setActiveLink();
@@ -212,11 +243,39 @@ if (upsidePortal) {
     const x = (event.clientX - rect.left) / rect.width;
     document.body.classList.toggle('portal-blue', x >= 0.5);
   };
+  const setPortalHueFromTouch = (touch) => {
+    const rect = upsidePortal.getBoundingClientRect();
+    const x = (touch.clientX - rect.left) / rect.width;
+    document.body.classList.toggle('portal-blue', x >= 0.5);
+  };
 
   upsidePortal.addEventListener('pointermove', setPortalHue);
+  upsidePortal.addEventListener('pointerenter', () => {
+    document.body.classList.add('portal-active');
+  });
   upsidePortal.addEventListener('pointerleave', () => {
+    document.body.classList.remove('portal-active');
     document.body.classList.remove('portal-blue');
   });
+  upsidePortal.addEventListener('touchstart', (event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    document.body.classList.add('portal-active');
+    setPortalHueFromTouch(touch);
+  }, { passive: true });
+  upsidePortal.addEventListener('touchmove', (event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    setPortalHueFromTouch(touch);
+  }, { passive: true });
+  upsidePortal.addEventListener('touchend', () => {
+    document.body.classList.remove('portal-active');
+    document.body.classList.remove('portal-blue');
+  }, { passive: true });
+  upsidePortal.addEventListener('touchcancel', () => {
+    document.body.classList.remove('portal-active');
+    document.body.classList.remove('portal-blue');
+  }, { passive: true });
 }
 
 document.addEventListener('keydown', (event) => {
@@ -247,7 +306,7 @@ if (frameTargets.length) {
     el.style.setProperty('--glow-y', '50%');
   });
 
-  if (!reduceMotion) {
+  if (!reduceMotion && !mobileOrTouch) {
     frameTargets.forEach((el) => {
       let rafId;
       const handleMove = (event) => {
@@ -278,7 +337,9 @@ if (frameTargets.length) {
     });
   }
 
-  if ('IntersectionObserver' in window) {
+  if (mobileOrTouch || !('IntersectionObserver' in window)) {
+    frameTargets.forEach((el) => el.classList.add('is-revealed'));
+  } else {
     const revealObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -286,11 +347,12 @@ if (frameTargets.length) {
           revealObserver.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.18 });
+    }, {
+      threshold: 0.08,
+      rootMargin: '0px 0px -10% 0px'
+    });
 
     frameTargets.forEach((el) => revealObserver.observe(el));
-  } else {
-    frameTargets.forEach((el) => el.classList.add('is-revealed'));
   }
 }
 

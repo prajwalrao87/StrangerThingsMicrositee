@@ -10,6 +10,7 @@ const CAPTURE_JPEG_QUALITY = 0.96;
 const FACE_ENHANCE_DEFAULT = true;
 const FACE_DETECT_MIN_AREA_RATIO = 0.055;
 const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
+const AR_LOADING_AUDIO_SRC = 'assets/audios/StrangerThings.mp3';
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -181,9 +182,36 @@ export function initArExperience() {
   let stream = null;
   let captureState = null;
   let blendInFlight = false;
+  const loadingAudio = new Audio(AR_LOADING_AUDIO_SRC);
+  loadingAudio.preload = 'auto';
+  loadingAudio.loop = true;
+  loadingAudio.volume = 0.9;
   const faceDetector = ('FaceDetector' in window)
     ? new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
     : null;
+
+  const startLoadingAudio = () => {
+    try {
+      loadingAudio.currentTime = 0;
+      const playAttempt = loadingAudio.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(() => {
+          // Some browsers can still block autoplay even after interaction.
+        });
+      }
+    } catch (_err) {
+      // No-op: UI should continue even if audio cannot start.
+    }
+  };
+
+  const stopLoadingAudio = () => {
+    try {
+      loadingAudio.pause();
+      loadingAudio.currentTime = 0;
+    } catch (_err) {
+      // No-op: keep flow resilient.
+    }
+  };
 
   const releaseCameraStream = () => {
     if (!stream) return;
@@ -256,6 +284,7 @@ export function initArExperience() {
   };
 
   const resetCaptureState = () => {
+    stopLoadingAudio();
     arCaptureShell.classList.remove('is-processing', 'is-result');
     arProcessing.setAttribute('aria-hidden', 'true');
     if (arResultImage) {
@@ -324,6 +353,7 @@ export function initArExperience() {
   };
 
   const stopCamera = () => {
+    stopLoadingAudio();
     if (document.activeElement && arCaptureWrap.contains(document.activeElement)) {
       document.activeElement.blur();
     }
@@ -442,6 +472,7 @@ export function initArExperience() {
     arCaptureShell.classList.remove('is-result');
     arProcessing.setAttribute('aria-hidden', 'false');
     arCaptureNote.textContent = 'Rift lock engaged. Processing your avatar...';
+    startLoadingAudio();
 
     try {
       const frameCanvas = document.createElement('canvas');
@@ -484,6 +515,7 @@ export function initArExperience() {
 
       const faceCheck = await validateFaceSize(frameCanvas);
       if (!faceCheck.ok) {
+        stopLoadingAudio();
         arCaptureShell.classList.remove('is-processing');
         arProcessing.setAttribute('aria-hidden', 'true');
         arCaptureNote.textContent = faceCheck.reason;
@@ -500,8 +532,10 @@ export function initArExperience() {
       arCaptureShell.classList.add('is-result');
       arProcessing.setAttribute('aria-hidden', 'true');
       arCaptureNote.textContent = `Scene blended: ${sceneName}.`;
+      stopLoadingAudio();
       updateResultActionState();
     } catch (error) {
+      stopLoadingAudio();
       arCaptureShell.classList.remove('is-processing');
       arProcessing.setAttribute('aria-hidden', 'true');
       const detail = error instanceof Error && error.name === 'AbortError'
@@ -526,10 +560,30 @@ export function initArExperience() {
       if (arCaptureShell.classList.contains('is-result') && captureState && !blendInFlight) {
         try {
           blendInFlight = true;
-          arCaptureNote.textContent = `Reblending for ${getActiveSceneName(arSceneButtons)}...`;
+          const activeSceneName = getActiveSceneName(arSceneButtons);
+          if (arProcessingTitle) {
+            arProcessingTitle.textContent = activeSceneName === 'Upside Down' ? 'Opening Upside Down gate...' : 'Stabilizing portal...';
+          }
+          if (arProcessingSub) {
+            arProcessingSub.textContent = `Binding to ${activeSceneName} scene`;
+          }
+          arCaptureShell.classList.add('is-processing');
+          arCaptureShell.classList.remove('is-result');
+          arProcessing.setAttribute('aria-hidden', 'false');
+          arCaptureNote.textContent = `Reblending for ${activeSceneName}...`;
+          startLoadingAudio();
           await renderCurrentBlend();
+          arCaptureShell.classList.remove('is-processing');
+          arCaptureShell.classList.add('is-result');
+          arProcessing.setAttribute('aria-hidden', 'true');
+          stopLoadingAudio();
           arCaptureNote.textContent = `Scene blended: ${getActiveSceneName(arSceneButtons)}.`;
           updateResultActionState();
+        } catch (error) {
+          stopLoadingAudio();
+          arCaptureShell.classList.remove('is-processing');
+          arProcessing.setAttribute('aria-hidden', 'true');
+          arCaptureNote.textContent = `Reblend failed. ${error instanceof Error ? error.message : ''}`.trim();
         } finally {
           blendInFlight = false;
         }
@@ -552,6 +606,7 @@ export function initArExperience() {
   });
 
   window.addEventListener('beforeunload', () => {
+    stopLoadingAudio();
     releaseCameraStream();
   });
 

@@ -1,3 +1,5 @@
+import { detectFaceBox } from './face.js';
+
 let arUiReady = false;
 const AR_DEFAULT_PREVIEW = 'assets/cast/eleven.jpg';
 const HF_SPACE_BASE_URL = 'https://musicutilist-face-integr.hf.space';
@@ -6,6 +8,8 @@ const SWAP_TIMEOUT_MS = 240000;
 const CAPTURE_MAX_WIDTH = 1280;
 const CAPTURE_JPEG_QUALITY = 0.96;
 const FACE_ENHANCE_DEFAULT = true;
+const FACE_DETECT_MIN_AREA_RATIO = 0.055;
+const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -156,6 +160,8 @@ export function initArExperience() {
   const arBlendCanvas = document.getElementById('arBlendCanvas');
   const arCaptureBtn = document.getElementById('arCaptureBtn');
   const arCaptureCloseBtn = document.getElementById('arCaptureCloseBtn');
+  const arDownloadBtn = document.getElementById('arDownloadBtn');
+  const arShareBtn = document.getElementById('arShareBtn');
   const arCaptureNote = document.getElementById('arCaptureNote');
   const arSceneButtons = Array.from(document.querySelectorAll('.ar-scene'));
   const arPanel = document.querySelector('.panel-ar');
@@ -175,6 +181,72 @@ export function initArExperience() {
   let stream = null;
   let captureState = null;
   let blendInFlight = false;
+  const faceDetector = ('FaceDetector' in window)
+    ? new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
+    : null;
+
+  const releaseCameraStream = () => {
+    if (!stream) return;
+    stream.getTracks().forEach((track) => track.stop());
+    stream = null;
+    arCaptureVideo.srcObject = null;
+  };
+
+  const getResultSrc = () => arResultImage?.getAttribute('src') || '';
+
+  const updateResultActionState = () => {
+    const hasResult = !!getResultSrc();
+    if (arDownloadBtn) arDownloadBtn.disabled = !hasResult;
+    if (arShareBtn) arShareBtn.disabled = !hasResult;
+  };
+
+  const toResultBlob = async () => {
+    const src = getResultSrc();
+    if (src) {
+      try {
+        const response = await fetch(src);
+        if (response.ok) return response.blob();
+      } catch (_err) {
+        // Fallback to blend canvas below.
+      }
+    }
+    return canvasToBlob(arBlendCanvas, 'image/png', 0.96);
+  };
+
+  const validateFaceSize = async (frameCanvas) => {
+    try {
+      let box = null;
+
+      if (faceDetector) {
+        const faces = await faceDetector.detect(frameCanvas);
+        if (faces && faces.length > 0) {
+          box = faces[0]?.boundingBox || null;
+        }
+      } else {
+        const mpFace = await detectFaceBox(frameCanvas, frameCanvas.width, frameCanvas.height);
+        if (mpFace) {
+          box = { width: mpFace.w, height: mpFace.h };
+        }
+      }
+
+      if (!box) {
+        return { ok: false, reason: 'Face is not detected. Keep your face in center and retry.' };
+      }
+
+      const frameArea = Math.max(1, frameCanvas.width * frameCanvas.height);
+      const faceArea = Math.max(1, box.width * box.height);
+      const areaRatio = faceArea / frameArea;
+      const widthRatio = box.width / Math.max(1, frameCanvas.width);
+
+      if (areaRatio < FACE_DETECT_MIN_AREA_RATIO || widthRatio < FACE_DETECT_MIN_WIDTH_RATIO) {
+        return { ok: false, reason: 'Face is too small. Move closer to camera and recapture.' };
+      }
+
+      return { ok: true, reason: '' };
+    } catch (_err) {
+      return { ok: false, reason: 'Face is not detected. Please retry with better lighting.' };
+    }
+  };
 
   const animateStrip = () => {
     if (arScenesStrip) {
@@ -191,6 +263,7 @@ export function initArExperience() {
       arResultImage.style.display = 'none';
     }
     captureState = null;
+    updateResultActionState();
   };
 
   const syncStageLayout = () => {
@@ -254,11 +327,7 @@ export function initArExperience() {
     if (document.activeElement && arCaptureWrap.contains(document.activeElement)) {
       document.activeElement.blur();
     }
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      stream = null;
-    }
-    arCaptureVideo.srcObject = null;
+    releaseCameraStream();
     arCaptureWrap.classList.remove('open');
     arCaptureWrap.setAttribute('aria-hidden', 'true');
     arPanel.classList.remove('is-camera-open');
@@ -290,6 +359,72 @@ export function initArExperience() {
   arCaptureCloseBtn.addEventListener('click', () => {
     stopCamera();
   });
+
+  if (arDownloadBtn) {
+    arDownloadBtn.addEventListener('click', async () => {
+      const src = getResultSrc();
+      if (!src) {
+        arCaptureNote.textContent = 'Capture and blend first to download.';
+        return;
+      }
+
+      try {
+        const blob = await toResultBlob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `stranger-things-avatar-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : 'Download failed.';
+        arCaptureNote.textContent = `Download failed. ${detail}`;
+      }
+    });
+  }
+
+  if (arShareBtn) {
+    arShareBtn.addEventListener('click', async () => {
+      if (!getResultSrc()) {
+        arCaptureNote.textContent = 'Capture and blend first to share.';
+        return;
+      }
+
+      if (!navigator.share) {
+        arCaptureNote.textContent = 'Share is not supported on this browser. Use Download.';
+        return;
+      }
+
+      try {
+        const blob = await toResultBlob();
+        const extension = (blob.type || '').includes('jpeg') ? 'jpg' : 'png';
+        const file = new File([blob], `stranger-things-avatar.${extension}`, {
+          type: blob.type || 'image/png'
+        });
+
+        const payloadWithFile = {
+          title: 'Stranger Things AR Avatar',
+          text: 'My Stranger Things AR avatar',
+          files: [file]
+        };
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share(payloadWithFile);
+        } else {
+          await navigator.share({
+            title: 'Stranger Things AR Avatar',
+            text: 'My Stranger Things AR avatar is ready. Download is available in-app.'
+          });
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        const detail = error instanceof Error ? error.message : 'Share failed.';
+        arCaptureNote.textContent = `Share failed. ${detail}`;
+      }
+    });
+  }
 
   arCaptureBtn.addEventListener('click', async () => {
     if (blendInFlight || !stream) return;
@@ -347,14 +482,25 @@ export function initArExperience() {
         frameCanvas.height
       );
 
+      const faceCheck = await validateFaceSize(frameCanvas);
+      if (!faceCheck.ok) {
+        arCaptureShell.classList.remove('is-processing');
+        arProcessing.setAttribute('aria-hidden', 'true');
+        arCaptureNote.textContent = faceCheck.reason;
+        return;
+      }
+
       const frameBlob = await canvasToBlob(frameCanvas, 'image/jpeg', CAPTURE_JPEG_QUALITY);
       captureState = { frameBlob };
+      // Turn camera off immediately after capture.
+      releaseCameraStream();
       await renderCurrentBlend();
 
       arCaptureShell.classList.remove('is-processing');
       arCaptureShell.classList.add('is-result');
       arProcessing.setAttribute('aria-hidden', 'true');
       arCaptureNote.textContent = `Scene blended: ${sceneName}.`;
+      updateResultActionState();
     } catch (error) {
       arCaptureShell.classList.remove('is-processing');
       arProcessing.setAttribute('aria-hidden', 'true');
@@ -383,6 +529,7 @@ export function initArExperience() {
           arCaptureNote.textContent = `Reblending for ${getActiveSceneName(arSceneButtons)}...`;
           await renderCurrentBlend();
           arCaptureNote.textContent = `Scene blended: ${getActiveSceneName(arSceneButtons)}.`;
+          updateResultActionState();
         } finally {
           blendInFlight = false;
         }
@@ -405,13 +552,13 @@ export function initArExperience() {
   });
 
   window.addEventListener('beforeunload', () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-    }
+    releaseCameraStream();
   });
 
   if (!arUiReady) {
     arUiReady = true;
     animateStrip();
   }
+
+  updateResultActionState();
 }

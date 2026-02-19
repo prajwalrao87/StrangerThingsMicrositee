@@ -96,7 +96,7 @@ async function loadImage(src) {
 
 async function getGradioClient() {
   if (!gradioClientPromise) {
-    gradioClientPromise = import(GRADIO_CLIENT_CDN)
+    gradioClientPromise = import(/* @vite-ignore */ GRADIO_CLIENT_CDN)
       .then(({ Client }) => Client.connect(HF_SPACE_ID));
   }
   return gradioClientPromise;

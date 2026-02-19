@@ -10,7 +10,7 @@ const CAPTURE_JPEG_QUALITY = 0.96;
 const FACE_ENHANCE_DEFAULT = true;
 const FACE_DETECT_MIN_AREA_RATIO = 0.055;
 const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
-const AR_LOADING_AUDIO_SRC = 'assets/audios/StrangerThings.mp3';
+const AR_LOADING_AUDIO_SRC = '/assets/audios/StrangerThings.mp3';
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -182,21 +182,55 @@ export function initArExperience() {
   let stream = null;
   let captureState = null;
   let blendInFlight = false;
+  let audioPrimed = false;
   const loadingAudio = new Audio(AR_LOADING_AUDIO_SRC);
   loadingAudio.preload = 'auto';
   loadingAudio.loop = true;
   loadingAudio.volume = 0.9;
+  loadingAudio.playsInline = true;
   const faceDetector = ('FaceDetector' in window)
     ? new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
     : null;
 
+  const primeLoadingAudioFromGesture = () => {
+    if (audioPrimed) return;
+    try {
+      loadingAudio.muted = true;
+      const primeAttempt = loadingAudio.play();
+      if (primeAttempt && typeof primeAttempt.then === 'function') {
+        primeAttempt.then(() => {
+          loadingAudio.pause();
+          loadingAudio.currentTime = 0;
+          loadingAudio.muted = false;
+          audioPrimed = true;
+        }).catch(() => {
+          loadingAudio.muted = false;
+        });
+      } else {
+        loadingAudio.muted = false;
+      }
+    } catch (_err) {
+      loadingAudio.muted = false;
+    }
+  };
+
   const startLoadingAudio = () => {
     try {
+      loadingAudio.muted = false;
       loadingAudio.currentTime = 0;
       const playAttempt = loadingAudio.play();
       if (playAttempt && typeof playAttempt.catch === 'function') {
         playAttempt.catch(() => {
-          // Some browsers can still block autoplay even after interaction.
+          // Some mobile browsers need an explicit load + replay.
+          try {
+            loadingAudio.load();
+            const retry = loadingAudio.play();
+            if (retry && typeof retry.catch === 'function') {
+              retry.catch(() => {});
+            }
+          } catch (_err) {
+            // No-op.
+          }
         });
       }
     } catch (_err) {
@@ -383,6 +417,7 @@ export function initArExperience() {
   };
 
   arLaunchBtn.addEventListener('click', () => {
+    primeLoadingAudioFromGesture();
     startCamera();
   });
 
@@ -458,6 +493,7 @@ export function initArExperience() {
 
   arCaptureBtn.addEventListener('click', async () => {
     if (blendInFlight || !stream) return;
+    primeLoadingAudioFromGesture();
 
     blendInFlight = true;
     const sceneName = getActiveSceneName(arSceneButtons);
@@ -550,6 +586,7 @@ export function initArExperience() {
 
   arSceneButtons.forEach((button) => {
     button.addEventListener('click', async () => {
+      primeLoadingAudioFromGesture();
       arSceneButtons.forEach((item) => item.classList.remove('is-active'));
       button.classList.add('is-active');
       applyArSceneDepth(arSceneButtons);

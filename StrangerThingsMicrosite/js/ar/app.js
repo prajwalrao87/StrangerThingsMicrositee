@@ -184,6 +184,7 @@ export function initArExperience() {
   let captureState = null;
   let blendInFlight = false;
   let audioPrimed = false;
+  let loadingAudioRequested = false;
   const loadingAudio = document.createElement('audio');
   loadingAudio.preload = 'auto';
   loadingAudio.loop = true;
@@ -213,8 +214,10 @@ export function initArExperience() {
       const primeAttempt = loadingAudio.play();
       if (primeAttempt && typeof primeAttempt.then === 'function') {
         primeAttempt.then(() => {
-          loadingAudio.pause();
-          loadingAudio.currentTime = 0;
+          if (!loadingAudioRequested) {
+            loadingAudio.pause();
+            loadingAudio.currentTime = 0;
+          }
           loadingAudio.muted = false;
           loadingAudio.volume = 0.9;
           audioPrimed = true;
@@ -225,8 +228,10 @@ export function initArExperience() {
             const mutedAttempt = loadingAudio.play();
             if (mutedAttempt && typeof mutedAttempt.then === 'function') {
               mutedAttempt.then(() => {
-                loadingAudio.pause();
-                loadingAudio.currentTime = 0;
+                if (!loadingAudioRequested) {
+                  loadingAudio.pause();
+                  loadingAudio.currentTime = 0;
+                }
                 loadingAudio.muted = false;
                 loadingAudio.volume = 0.9;
                 audioPrimed = true;
@@ -254,6 +259,7 @@ export function initArExperience() {
 
   const startLoadingAudio = () => {
     try {
+      loadingAudioRequested = true;
       loadingAudio.muted = false;
       loadingAudio.volume = 0.9;
       loadingAudio.currentTime = 0;
@@ -279,6 +285,7 @@ export function initArExperience() {
 
   const stopLoadingAudio = () => {
     try {
+      loadingAudioRequested = false;
       loadingAudio.pause();
       loadingAudio.currentTime = 0;
     } catch (_err) {
@@ -534,7 +541,6 @@ export function initArExperience() {
 
   arCaptureBtn.addEventListener('click', async () => {
     if (blendInFlight || !stream) return;
-    primeLoadingAudioFromGesture();
 
     blendInFlight = true;
     const sceneName = getActiveSceneName(arSceneButtons);
@@ -631,7 +637,6 @@ export function initArExperience() {
     button.addEventListener('pointerdown', primeLoadingAudioFromGesture, { passive: true });
     button.addEventListener('touchstart', primeLoadingAudioFromGesture, { passive: true });
     button.addEventListener('click', async () => {
-      primeLoadingAudioFromGesture();
       arSceneButtons.forEach((item) => item.classList.remove('is-active'));
       button.classList.add('is-active');
       applyArSceneDepth(arSceneButtons);

@@ -11,6 +11,7 @@ const FACE_ENHANCE_DEFAULT = true;
 const FACE_DETECT_MIN_AREA_RATIO = 0.055;
 const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
 const AR_LOADING_AUDIO_SRC = '/assets/audios/StrangerThings.mp3';
+const AR_LOADING_AUDIO_SRC_FALLBACK = 'assets/audios/StrangerThings.mp3';
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -183,11 +184,23 @@ export function initArExperience() {
   let captureState = null;
   let blendInFlight = false;
   let audioPrimed = false;
-  const loadingAudio = new Audio(AR_LOADING_AUDIO_SRC);
+  const loadingAudio = document.createElement('audio');
   loadingAudio.preload = 'auto';
   loadingAudio.loop = true;
   loadingAudio.volume = 0.9;
   loadingAudio.playsInline = true;
+  loadingAudio.setAttribute('playsinline', '');
+  loadingAudio.setAttribute('webkit-playsinline', '');
+  loadingAudio.src = AR_LOADING_AUDIO_SRC;
+  loadingAudio.load();
+
+  let triedAudioFallbackPath = false;
+  loadingAudio.addEventListener('error', () => {
+    if (triedAudioFallbackPath) return;
+    triedAudioFallbackPath = true;
+    loadingAudio.src = AR_LOADING_AUDIO_SRC_FALLBACK;
+    loadingAudio.load();
+  });
   const faceDetector = ('FaceDetector' in window)
     ? new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
     : null;
@@ -195,28 +208,54 @@ export function initArExperience() {
   const primeLoadingAudioFromGesture = () => {
     if (audioPrimed) return;
     try {
-      loadingAudio.muted = true;
+      loadingAudio.muted = false;
+      loadingAudio.volume = 0.01;
       const primeAttempt = loadingAudio.play();
       if (primeAttempt && typeof primeAttempt.then === 'function') {
         primeAttempt.then(() => {
           loadingAudio.pause();
           loadingAudio.currentTime = 0;
           loadingAudio.muted = false;
+          loadingAudio.volume = 0.9;
           audioPrimed = true;
         }).catch(() => {
-          loadingAudio.muted = false;
+          // Fallback unlock flow for stricter mobile autoplay policies.
+          try {
+            loadingAudio.muted = true;
+            const mutedAttempt = loadingAudio.play();
+            if (mutedAttempt && typeof mutedAttempt.then === 'function') {
+              mutedAttempt.then(() => {
+                loadingAudio.pause();
+                loadingAudio.currentTime = 0;
+                loadingAudio.muted = false;
+                loadingAudio.volume = 0.9;
+                audioPrimed = true;
+              }).catch(() => {
+                loadingAudio.muted = false;
+                loadingAudio.volume = 0.9;
+              });
+            } else {
+              loadingAudio.muted = false;
+              loadingAudio.volume = 0.9;
+            }
+          } catch (_err) {
+            loadingAudio.muted = false;
+            loadingAudio.volume = 0.9;
+          }
         });
       } else {
-        loadingAudio.muted = false;
+        loadingAudio.volume = 0.9;
       }
     } catch (_err) {
       loadingAudio.muted = false;
+      loadingAudio.volume = 0.9;
     }
   };
 
   const startLoadingAudio = () => {
     try {
       loadingAudio.muted = false;
+      loadingAudio.volume = 0.9;
       loadingAudio.currentTime = 0;
       const playAttempt = loadingAudio.play();
       if (playAttempt && typeof playAttempt.catch === 'function') {
@@ -420,6 +459,8 @@ export function initArExperience() {
     primeLoadingAudioFromGesture();
     startCamera();
   });
+  arLaunchBtn.addEventListener('pointerdown', primeLoadingAudioFromGesture, { passive: true });
+  arLaunchBtn.addEventListener('touchstart', primeLoadingAudioFromGesture, { passive: true });
 
   arCaptureCloseBtn.addEventListener('click', () => {
     stopCamera();
@@ -583,8 +624,12 @@ export function initArExperience() {
       blendInFlight = false;
     }
   });
+  arCaptureBtn.addEventListener('pointerdown', primeLoadingAudioFromGesture, { passive: true });
+  arCaptureBtn.addEventListener('touchstart', primeLoadingAudioFromGesture, { passive: true });
 
   arSceneButtons.forEach((button) => {
+    button.addEventListener('pointerdown', primeLoadingAudioFromGesture, { passive: true });
+    button.addEventListener('touchstart', primeLoadingAudioFromGesture, { passive: true });
     button.addEventListener('click', async () => {
       primeLoadingAudioFromGesture();
       arSceneButtons.forEach((item) => item.classList.remove('is-active'));

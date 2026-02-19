@@ -312,11 +312,40 @@ export function initArExperience() {
       const frameCanvas = document.createElement('canvas');
       const rawWidth = arCaptureVideo.videoWidth || 1280;
       const rawHeight = arCaptureVideo.videoHeight || 720;
-      const scale = rawWidth > CAPTURE_MAX_WIDTH ? CAPTURE_MAX_WIDTH / rawWidth : 1;
-      frameCanvas.width = Math.max(1, Math.round(rawWidth * scale));
-      frameCanvas.height = Math.max(1, Math.round(rawHeight * scale));
+      const viewWidth = Math.max(1, arCaptureVideo.clientWidth || rawWidth);
+      const viewHeight = Math.max(1, arCaptureVideo.clientHeight || rawHeight);
+      const viewAspect = viewWidth / viewHeight;
+      const rawAspect = rawWidth / rawHeight;
+
+      let srcX = 0;
+      let srcY = 0;
+      let srcW = rawWidth;
+      let srcH = rawHeight;
+
+      // Match capture crop with CSS object-fit: cover preview.
+      if (rawAspect > viewAspect) {
+        srcW = Math.max(1, Math.round(rawHeight * viewAspect));
+        srcX = Math.round((rawWidth - srcW) / 2);
+      } else if (rawAspect < viewAspect) {
+        srcH = Math.max(1, Math.round(rawWidth / viewAspect));
+        srcY = Math.round((rawHeight - srcH) / 2);
+      }
+
+      const scale = srcW > CAPTURE_MAX_WIDTH ? CAPTURE_MAX_WIDTH / srcW : 1;
+      frameCanvas.width = Math.max(1, Math.round(srcW * scale));
+      frameCanvas.height = Math.max(1, Math.round(srcH * scale));
       const fctx = frameCanvas.getContext('2d');
-      fctx.drawImage(arCaptureVideo, 0, 0, frameCanvas.width, frameCanvas.height);
+      fctx.drawImage(
+        arCaptureVideo,
+        srcX,
+        srcY,
+        srcW,
+        srcH,
+        0,
+        0,
+        frameCanvas.width,
+        frameCanvas.height
+      );
 
       const frameBlob = await canvasToBlob(frameCanvas, 'image/jpeg', CAPTURE_JPEG_QUALITY);
       captureState = { frameBlob };

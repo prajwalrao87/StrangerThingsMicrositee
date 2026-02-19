@@ -382,26 +382,42 @@ main section[id] {
   padding: 0.82rem 0.9rem;
   background: linear-gradient(120deg, rgba(28, 10, 14, 0.84), rgba(18, 10, 15, 0.84));
   display: grid;
-  grid-template-columns: 42px 1fr;
+  grid-template-columns: 32px 1fr;
   gap: 0.72rem;
   align-items: start;
 }
 
 .about-meta-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  color: #ffd7dd;
-  background: linear-gradient(145deg, rgba(182, 18, 34, 0.88), rgba(98, 9, 18, 0.88));
-  box-shadow: 0 0 14px rgba(245, 42, 64, 0.35);
+  color: #fff;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  animation: none;
 }
 
 .about-meta-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   fill: currentColor;
+  filter:
+    drop-shadow(0 0 2px rgba(255, 255, 255, 0.25))
+    drop-shadow(0 0 7px rgba(255, 42, 74, 0.78))
+    drop-shadow(0 0 14px rgba(255, 24, 60, 0.5));
+}
+
+.about-meta-card:hover .about-meta-icon {
+  transform: translateY(-1px);
+}
+
+.about-meta-card:hover .about-meta-icon svg {
+  filter:
+    drop-shadow(0 0 3px rgba(255, 255, 255, 0.32))
+    drop-shadow(0 0 10px rgba(255, 48, 80, 0.9))
+    drop-shadow(0 0 18px rgba(255, 26, 64, 0.62));
 }
 
 .about-meta-content p {
@@ -531,7 +547,10 @@ main section[id] {
   border: 1px solid rgba(234, 174, 76, 0.26);
   margin: 0;
   padding: 0;
-  background: #020307;
+  background:
+    linear-gradient(180deg, rgba(5, 6, 12, 0.3), rgba(4, 4, 8, 0.78)),
+    url("assets/cast/eleven.jpg") center / cover no-repeat,
+    #020307;
   cursor: pointer;
   transition: opacity 300ms ease, transform 300ms ease;
   z-index: 2;
@@ -540,11 +559,23 @@ main section[id] {
 .ar-launch-card img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center top;
   display: block;
   background: #05050a;
   opacity: 0.88;
   filter: saturate(1.08) contrast(1.07) brightness(0.74);
+}
+
+.ar-launch-card img.is-broken {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@supports not (aspect-ratio: 1 / 1) {
+  .ar-stage {
+    height: min(82vw, 540px);
+  }
 }
 
 .ar-launch-overlay {
@@ -1604,6 +1635,14 @@ body.upside-theme::before {
 
   #diceHint {
     font-size: 1.2rem;
+  }
+}
+
+@supports not (height: 100dvh) {
+  @media (max-width: 640px) {
+    .panel-ar {
+      --ar-stage-max: min(360px, calc((100vh - 255px) * 0.67));
+    }
   }
 }
 

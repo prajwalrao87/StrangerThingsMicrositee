@@ -10,10 +10,15 @@ const CAPTURE_JPEG_QUALITY = 0.96;
 const FACE_ENHANCE_DEFAULT = true;
 const FACE_DETECT_MIN_AREA_RATIO = 0.055;
 const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
+
 const GRADIO_CLIENT_CDN = 'https://cdn.jsdelivr.net/npm/@gradio/client/+esm';
 
 let gradioClientPromise = null;
 let gradioApiInfoPromise = null;
+
+const AR_LOADING_AUDIO_SRC = '/assets/audios/StrangerThings.mp3';
+const AR_LOADING_AUDIO_SRC_FALLBACK = 'assets/audios/StrangerThings.mp3';
+
 
 function getActiveSceneButton(arSceneButtons) {
   return arSceneButtons.find((button) => button.classList.contains('is-active')) || null;
@@ -258,9 +263,115 @@ export function initArExperience() {
   let stream = null;
   let captureState = null;
   let blendInFlight = false;
+  let audioPrimed = false;
+  let loadingAudioRequested = false;
+  const loadingAudio = document.createElement('audio');
+  loadingAudio.preload = 'auto';
+  loadingAudio.loop = true;
+  loadingAudio.volume = 0.9;
+  loadingAudio.playsInline = true;
+  loadingAudio.setAttribute('playsinline', '');
+  loadingAudio.setAttribute('webkit-playsinline', '');
+  loadingAudio.src = AR_LOADING_AUDIO_SRC;
+  loadingAudio.load();
+
+  let triedAudioFallbackPath = false;
+  loadingAudio.addEventListener('error', () => {
+    if (triedAudioFallbackPath) return;
+    triedAudioFallbackPath = true;
+    loadingAudio.src = AR_LOADING_AUDIO_SRC_FALLBACK;
+    loadingAudio.load();
+  });
   const faceDetector = ('FaceDetector' in window)
     ? new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
     : null;
+
+  const primeLoadingAudioFromGesture = () => {
+    if (audioPrimed) return;
+    try {
+      loadingAudio.muted = false;
+      loadingAudio.volume = 0.01;
+      const primeAttempt = loadingAudio.play();
+      if (primeAttempt && typeof primeAttempt.then === 'function') {
+        primeAttempt.then(() => {
+          if (!loadingAudioRequested) {
+            loadingAudio.pause();
+            loadingAudio.currentTime = 0;
+          }
+          loadingAudio.muted = false;
+          loadingAudio.volume = 0.9;
+          audioPrimed = true;
+        }).catch(() => {
+          // Fallback unlock flow for stricter mobile autoplay policies.
+          try {
+            loadingAudio.muted = true;
+            const mutedAttempt = loadingAudio.play();
+            if (mutedAttempt && typeof mutedAttempt.then === 'function') {
+              mutedAttempt.then(() => {
+                if (!loadingAudioRequested) {
+                  loadingAudio.pause();
+                  loadingAudio.currentTime = 0;
+                }
+                loadingAudio.muted = false;
+                loadingAudio.volume = 0.9;
+                audioPrimed = true;
+              }).catch(() => {
+                loadingAudio.muted = false;
+                loadingAudio.volume = 0.9;
+              });
+            } else {
+              loadingAudio.muted = false;
+              loadingAudio.volume = 0.9;
+            }
+          } catch (_err) {
+            loadingAudio.muted = false;
+            loadingAudio.volume = 0.9;
+          }
+        });
+      } else {
+        loadingAudio.volume = 0.9;
+      }
+    } catch (_err) {
+      loadingAudio.muted = false;
+      loadingAudio.volume = 0.9;
+    }
+  };
+
+  const startLoadingAudio = () => {
+    try {
+      loadingAudioRequested = true;
+      loadingAudio.muted = false;
+      loadingAudio.volume = 0.9;
+      loadingAudio.currentTime = 0;
+      const playAttempt = loadingAudio.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(() => {
+          // Some mobile browsers need an explicit load + replay.
+          try {
+            loadingAudio.load();
+            const retry = loadingAudio.play();
+            if (retry && typeof retry.catch === 'function') {
+              retry.catch(() => {});
+            }
+          } catch (_err) {
+            // No-op.
+          }
+        });
+      }
+    } catch (_err) {
+      // No-op: UI should continue even if audio cannot start.
+    }
+  };
+
+  const stopLoadingAudio = () => {
+    try {
+      loadingAudioRequested = false;
+      loadingAudio.pause();
+      loadingAudio.currentTime = 0;
+    } catch (_err) {
+      // No-op: keep flow resilient.
+    }
+  };
 
   const releaseCameraStream = () => {
     if (!stream) return;
@@ -333,6 +444,7 @@ export function initArExperience() {
   };
 
   const resetCaptureState = () => {
+    stopLoadingAudio();
     arCaptureShell.classList.remove('is-processing', 'is-result');
     arProcessing.setAttribute('aria-hidden', 'true');
     if (arResultImage) {
@@ -401,6 +513,7 @@ export function initArExperience() {
   };
 
   const stopCamera = () => {
+    stopLoadingAudio();
     if (document.activeElement && arCaptureWrap.contains(document.activeElement)) {
       document.activeElement.blur();
     }
@@ -430,8 +543,11 @@ export function initArExperience() {
   };
 
   arLaunchBtn.addEventListener('click', () => {
+    primeLoadingAudioFromGesture();
     startCamera();
   });
+  arLaunchBtn.addEventListener('pointerdown', primeLoadingAudioFromGesture, { passive: true });
+  arLaunchBtn.addEventListener('touchstart', primeLoadingAudioFromGesture, { passive: true });
 
   arCaptureCloseBtn.addEventListener('click', () => {
     stopCamera();
@@ -519,6 +635,7 @@ export function initArExperience() {
     arCaptureShell.classList.remove('is-result');
     arProcessing.setAttribute('aria-hidden', 'false');
     arCaptureNote.textContent = 'Rift lock engaged. Processing your avatar...';
+    startLoadingAudio();
 
     try {
       const frameCanvas = document.createElement('canvas');
@@ -561,6 +678,7 @@ export function initArExperience() {
 
       const faceCheck = await validateFaceSize(frameCanvas);
       if (!faceCheck.ok) {
+        stopLoadingAudio();
         arCaptureShell.classList.remove('is-processing');
         arProcessing.setAttribute('aria-hidden', 'true');
         arCaptureNote.textContent = faceCheck.reason;
@@ -577,8 +695,10 @@ export function initArExperience() {
       arCaptureShell.classList.add('is-result');
       arProcessing.setAttribute('aria-hidden', 'true');
       arCaptureNote.textContent = `Scene blended: ${sceneName}.`;
+      stopLoadingAudio();
       updateResultActionState();
     } catch (error) {
+      stopLoadingAudio();
       arCaptureShell.classList.remove('is-processing');
       arProcessing.setAttribute('aria-hidden', 'true');
       const detail = error instanceof Error && error.name === 'AbortError'
@@ -590,8 +710,12 @@ export function initArExperience() {
       blendInFlight = false;
     }
   });
+  arCaptureBtn.addEventListener('pointerdown', primeLoadingAudioFromGesture, { passive: true });
+  arCaptureBtn.addEventListener('touchstart', primeLoadingAudioFromGesture, { passive: true });
 
   arSceneButtons.forEach((button) => {
+    button.addEventListener('pointerdown', primeLoadingAudioFromGesture, { passive: true });
+    button.addEventListener('touchstart', primeLoadingAudioFromGesture, { passive: true });
     button.addEventListener('click', async () => {
       arSceneButtons.forEach((item) => item.classList.remove('is-active'));
       button.classList.add('is-active');
@@ -603,10 +727,30 @@ export function initArExperience() {
       if (arCaptureShell.classList.contains('is-result') && captureState && !blendInFlight) {
         try {
           blendInFlight = true;
-          arCaptureNote.textContent = `Reblending for ${getActiveSceneName(arSceneButtons)}...`;
+          const activeSceneName = getActiveSceneName(arSceneButtons);
+          if (arProcessingTitle) {
+            arProcessingTitle.textContent = activeSceneName === 'Upside Down' ? 'Opening Upside Down gate...' : 'Stabilizing portal...';
+          }
+          if (arProcessingSub) {
+            arProcessingSub.textContent = `Binding to ${activeSceneName} scene`;
+          }
+          arCaptureShell.classList.add('is-processing');
+          arCaptureShell.classList.remove('is-result');
+          arProcessing.setAttribute('aria-hidden', 'false');
+          arCaptureNote.textContent = `Reblending for ${activeSceneName}...`;
+          startLoadingAudio();
           await renderCurrentBlend();
+          arCaptureShell.classList.remove('is-processing');
+          arCaptureShell.classList.add('is-result');
+          arProcessing.setAttribute('aria-hidden', 'true');
+          stopLoadingAudio();
           arCaptureNote.textContent = `Scene blended: ${getActiveSceneName(arSceneButtons)}.`;
           updateResultActionState();
+        } catch (error) {
+          stopLoadingAudio();
+          arCaptureShell.classList.remove('is-processing');
+          arProcessing.setAttribute('aria-hidden', 'true');
+          arCaptureNote.textContent = `Reblend failed. ${error instanceof Error ? error.message : ''}`.trim();
         } finally {
           blendInFlight = false;
         }
@@ -629,6 +773,7 @@ export function initArExperience() {
   });
 
   window.addEventListener('beforeunload', () => {
+    stopLoadingAudio();
     releaseCameraStream();
   });
 

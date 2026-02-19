@@ -175,14 +175,10 @@ export function initArExperience() {
   let stream = null;
   let captureState = null;
   let blendInFlight = false;
-  let stripTargetX = 0;
-  let stripCurrentX = 0;
-  const STRIP_LERP = 0.18;
 
   const animateStrip = () => {
     if (arScenesStrip) {
-      stripCurrentX += (stripTargetX - stripCurrentX) * STRIP_LERP;
-      arScenesStrip.style.transform = `translate3d(${stripCurrentX}px, 0, 0)`;
+      arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
     requestAnimationFrame(animateStrip);
   };
@@ -221,12 +217,11 @@ export function initArExperience() {
     arPanel.classList.add('is-camera-open');
     syncStageLayout();
     syncStagePreview();
-    stripTargetX = 0;
-    stripCurrentX = 0;
     if (arScenesStrip) {
       arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
-    arPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
+    arPanel.scrollIntoView({ behavior: 'smooth', block: isSmallScreen ? 'start' : 'center' });
 
     if (stream) {
       arCaptureVideo.srcObject = stream;
@@ -267,8 +262,6 @@ export function initArExperience() {
     arCaptureWrap.classList.remove('open');
     arCaptureWrap.setAttribute('aria-hidden', 'true');
     arPanel.classList.remove('is-camera-open');
-    stripTargetX = 0;
-    stripCurrentX = 0;
     if (arScenesStrip) {
       arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
@@ -319,11 +312,40 @@ export function initArExperience() {
       const frameCanvas = document.createElement('canvas');
       const rawWidth = arCaptureVideo.videoWidth || 1280;
       const rawHeight = arCaptureVideo.videoHeight || 720;
-      const scale = rawWidth > CAPTURE_MAX_WIDTH ? CAPTURE_MAX_WIDTH / rawWidth : 1;
-      frameCanvas.width = Math.max(1, Math.round(rawWidth * scale));
-      frameCanvas.height = Math.max(1, Math.round(rawHeight * scale));
+      const viewWidth = Math.max(1, arCaptureVideo.clientWidth || rawWidth);
+      const viewHeight = Math.max(1, arCaptureVideo.clientHeight || rawHeight);
+      const viewAspect = viewWidth / viewHeight;
+      const rawAspect = rawWidth / rawHeight;
+
+      let srcX = 0;
+      let srcY = 0;
+      let srcW = rawWidth;
+      let srcH = rawHeight;
+
+      // Match capture crop with CSS object-fit: cover preview.
+      if (rawAspect > viewAspect) {
+        srcW = Math.max(1, Math.round(rawHeight * viewAspect));
+        srcX = Math.round((rawWidth - srcW) / 2);
+      } else if (rawAspect < viewAspect) {
+        srcH = Math.max(1, Math.round(rawWidth / viewAspect));
+        srcY = Math.round((rawHeight - srcH) / 2);
+      }
+
+      const scale = srcW > CAPTURE_MAX_WIDTH ? CAPTURE_MAX_WIDTH / srcW : 1;
+      frameCanvas.width = Math.max(1, Math.round(srcW * scale));
+      frameCanvas.height = Math.max(1, Math.round(srcH * scale));
       const fctx = frameCanvas.getContext('2d');
-      fctx.drawImage(arCaptureVideo, 0, 0, frameCanvas.width, frameCanvas.height);
+      fctx.drawImage(
+        arCaptureVideo,
+        srcX,
+        srcY,
+        srcW,
+        srcH,
+        0,
+        0,
+        frameCanvas.width,
+        frameCanvas.height
+      );
 
       const frameBlob = await canvasToBlob(frameCanvas, 'image/jpeg', CAPTURE_JPEG_QUALITY);
       captureState = { frameBlob };
@@ -373,31 +395,10 @@ export function initArExperience() {
   syncStagePreview();
 
   if (arScenesStrip) {
-    const supportsHover = window.matchMedia('(hover: hover)').matches;
-    if (supportsHover) {
-      arScenesStrip.addEventListener('mousemove', (event) => {
-        const rect = arScenesStrip.getBoundingClientRect();
-        const relative = (event.clientX - rect.left) / rect.width;
-        const normalized = (relative - 0.5) * 2;
-        const maxShift = Math.min(58, Math.max(24, rect.width * 0.06));
-        stripTargetX = normalized * maxShift;
-      });
-      arScenesStrip.addEventListener('mouseleave', () => {
-        stripTargetX = 0;
-      });
-    }
     requestAnimationFrame(() => {
       arScenesStrip.classList.add('is-ready');
     });
   }
-
-  window.addEventListener('resize', () => {
-    if (!window.matchMedia('(hover: hover)').matches && arScenesStrip) {
-      stripTargetX = 0;
-      stripCurrentX = 0;
-      arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
-    }
-  });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') stopCamera();

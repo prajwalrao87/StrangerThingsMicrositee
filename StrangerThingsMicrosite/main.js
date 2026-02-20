@@ -33,7 +33,7 @@ const castSpotlightBio = document.getElementById('castSpotlightBio');
 const castSpotlightAge = document.getElementById('castSpotlightAge');
 const castSpotlightFood = document.getElementById('castSpotlightFood');
 const castSpotlightSkill = document.getElementById('castSpotlightSkill');
-const frameTargets = Array.from(document.querySelectorAll('.hero, .panel:not(.panel-ar), .upside-portal, .site-footer'));
+const frameTargets = Array.from(document.querySelectorAll('.hero, .panel, .upside-portal, .site-footer'));
 
 if (diceOverlay && diceOverlay.parentElement !== document.body) {
   document.body.appendChild(diceOverlay);

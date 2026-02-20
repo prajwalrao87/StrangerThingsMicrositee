@@ -10,6 +10,7 @@ const CAPTURE_JPEG_QUALITY = 0.96;
 const FACE_ENHANCE_DEFAULT = true;
 const FACE_DETECT_MIN_AREA_RATIO = 0.055;
 const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
+const AR_CACHE_STORAGE_KEY = 'st_ar_scene_cache_v1';
 
 const GRADIO_CLIENT_CDN = 'https://cdn.jsdelivr.net/npm/@gradio/client/+esm';
 
@@ -71,6 +72,14 @@ function dataUrlToBlob(dataUrl) {
     bytes[i] = binary.charCodeAt(i);
   }
   return new Blob([bytes], { type: mime });
+}
+
+async function hashBlobSha256(blob) {
+  const buffer = await blob.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function extractImageFromPredictResponse(result) {
@@ -192,20 +201,14 @@ if (typeof window !== 'undefined') {
   window.swapFaces = swapFaces;
 }
 
-async function renderHostedSwap({ outCanvas, sourceBlob, sceneSrc }) {
+async function renderHostedSwap({ sourceBlob, sceneSrc }) {
   const targetBlob = await fetch(sceneSrc).then((response) => {
     if (!response.ok) {
       throw new Error(`Failed to load scene (${response.status})`);
     }
     return response.blob();
   });
-  const outputSrc = await callSwapEndpoint(sourceBlob, targetBlob, FACE_ENHANCE_DEFAULT);
-  const resultImage = document.getElementById('result');
-  if (resultImage) {
-    resultImage.src = outputSrc;
-    resultImage.style.display = 'block';
-  }
-  return drawImageToCanvas(outputSrc, outCanvas);
+  return callSwapEndpoint(sourceBlob, targetBlob, FACE_ENHANCE_DEFAULT);
 }
 
 async function drawImageToCanvas(outputSrc, outCanvas) {
@@ -271,8 +274,12 @@ export function initArExperience() {
 
   let stream = null;
   let captureState = null;
+  let captureId = '';
   let blendInFlight = false;
+  let queuedSceneBlend = false;
+  let latestRequestId = 0;
   let resultActionInFlight = false;
+  const resultCache = new Map();
   let loaderTickTimer = null;
   let loaderTipTimer = null;
   let loaderPercentValue = 0;
@@ -457,6 +464,30 @@ export function initArExperience() {
     setLoaderPercent(100);
   };
 
+  const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+  const nextRequestId = () => {
+    latestRequestId += 1;
+    return latestRequestId;
+  };
+  const isLatestRequest = (requestId) => requestId === latestRequestId;
+
+  const runQuickCacheTransition = async (sceneName) => {
+    if (arProcessingTitle) {
+      arProcessingTitle.textContent = 'Stabilizing portal...';
+    }
+    if (arProcessingSub) {
+      arProcessingSub.textContent = `Loading ${sceneName} scene`;
+    }
+    arCaptureShell.classList.add('is-processing');
+    arCaptureShell.classList.remove('is-result');
+    arProcessing.setAttribute('aria-hidden', 'false');
+    startInteractiveLoader(sceneName);
+    await wait(260);
+    stopInteractiveLoader();
+    arCaptureShell.classList.remove('is-processing');
+    arProcessing.setAttribute('aria-hidden', 'true');
+  };
+
   if (arLoaderChargeBtn) {
     arLoaderChargeBtn.addEventListener('click', () => {
       loaderBoostEnergy = Math.min(12, loaderBoostEnergy + 2.2);
@@ -475,6 +506,58 @@ export function initArExperience() {
   };
 
   const getResultSrc = () => arResultImage?.getAttribute('src') || '';
+
+  const loadSessionCache = () => {
+    try {
+      const raw = sessionStorage.getItem(AR_CACHE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      if (typeof parsed.captureId === 'string') captureId = parsed.captureId;
+      const entries = parsed.results && typeof parsed.results === 'object'
+        ? Object.entries(parsed.results)
+        : [];
+      entries.forEach(([key, value]) => {
+        if (typeof key === 'string' && typeof value === 'string') {
+          resultCache.set(key, value);
+        }
+      });
+    } catch (_err) {
+      // No-op if session cache is unavailable/corrupted.
+    }
+  };
+
+  const saveSessionCache = () => {
+    try {
+      const resultsObj = {};
+      resultCache.forEach((value, key) => {
+        resultsObj[key] = value;
+      });
+      sessionStorage.setItem(AR_CACHE_STORAGE_KEY, JSON.stringify({
+        captureId,
+        results: resultsObj
+      }));
+    } catch (_err) {
+      // No-op if storage is blocked.
+    }
+  };
+
+  const clearSessionCache = () => {
+    captureId = '';
+    resultCache.clear();
+    try {
+      sessionStorage.removeItem(AR_CACHE_STORAGE_KEY);
+    } catch (_err) {
+      // No-op if storage is blocked.
+    }
+  };
+
+  const buildSceneCacheKey = (sceneSrc) => {
+    if (!captureId || !sceneSrc) return '';
+    return `${captureId}__${sceneSrc}`;
+  };
+
+  loadSessionCache();
 
   const updateResultActionState = () => {
     const hasResult = !!getResultSrc();
@@ -629,23 +712,53 @@ export function initArExperience() {
     if (arScenesStrip) {
       arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
+    clearSessionCache();
     resetCaptureState();
+    latestRequestId += 1;
+    queuedSceneBlend = false;
+    blendInFlight = false;
     pauseLoadingAudioOnFullClose();
     syncStagePreview();
     arLaunchBtn?.focus();
   };
 
-  const renderCurrentBlend = async () => {
-    if (!captureState) return;
-    const sceneSrc = getSceneImageSrc(arSceneButtons);
+  const applyBlendOutput = async (outputSrc) => {
+    if (!outputSrc) return;
+    if (arResultImage) {
+      arResultImage.src = outputSrc;
+      arResultImage.style.display = 'block';
+    }
+    await drawImageToCanvas(outputSrc, arBlendCanvas);
+    syncStageLayout();
+    syncStagePreview();
+  };
+
+  const renderCurrentBlend = async (sceneSrcOverride = null) => {
+    const sceneSrc = sceneSrcOverride || getSceneImageSrc(arSceneButtons);
     if (!sceneSrc) throw new Error('No scene selected');
-    await renderHostedSwap({
-      outCanvas: arBlendCanvas,
+    const cacheKey = buildSceneCacheKey(sceneSrc);
+
+    if (cacheKey && resultCache.has(cacheKey)) {
+      return {
+        outputSrc: resultCache.get(cacheKey),
+        fromCache: true
+      };
+    }
+
+    if (!captureState) return null;
+
+    const outputSrc = await renderHostedSwap({
       sourceBlob: captureState.frameBlob,
       sceneSrc
     });
-    syncStageLayout();
-    syncStagePreview();
+    if (cacheKey && outputSrc) {
+      resultCache.set(cacheKey, outputSrc);
+      saveSessionCache();
+    }
+    return {
+      outputSrc,
+      fromCache: false
+    };
   };
 
   arLaunchBtn.addEventListener('click', () => {
@@ -737,11 +850,23 @@ export function initArExperience() {
     });
   }
 
+  const triggerQueuedSceneBlend = () => {
+    if (!queuedSceneBlend) return;
+    queuedSceneBlend = false;
+    const activeButton = getActiveSceneButton(arSceneButtons);
+    if (!activeButton) return;
+    window.setTimeout(() => {
+      activeButton.dispatchEvent(new Event('click'));
+    }, 0);
+  };
+
   arCaptureBtn.addEventListener('click', async () => {
     if (blendInFlight || !stream) return;
 
+    const requestId = nextRequestId();
     blendInFlight = true;
     const sceneName = getActiveSceneName(arSceneButtons);
+    const selectedSceneSrc = getSceneImageSrc(arSceneButtons);
     if (arProcessingTitle) {
       arProcessingTitle.textContent = sceneName === 'Upside Down' ? 'Opening Upside Down gate...' : 'Stabilizing portal...';
     }
@@ -807,9 +932,19 @@ export function initArExperience() {
 
       const frameBlob = await canvasToBlob(frameCanvas, 'image/jpeg', CAPTURE_JPEG_QUALITY);
       captureState = { frameBlob };
+      const nextCaptureId = await hashBlobSha256(frameBlob);
+      if (captureId !== nextCaptureId) {
+        captureId = nextCaptureId;
+        resultCache.clear();
+      }
+      saveSessionCache();
       // Turn camera off immediately after capture.
       releaseCameraStream();
-      await renderCurrentBlend();
+      const blendResult = await renderCurrentBlend(selectedSceneSrc);
+      if (!blendResult || !isLatestRequest(requestId)) {
+        return;
+      }
+      await applyBlendOutput(blendResult.outputSrc);
 
       stopInteractiveLoader();
       arCaptureShell.classList.remove('is-processing');
@@ -819,6 +954,9 @@ export function initArExperience() {
       stopLoadingAudio();
       updateResultActionState();
     } catch (error) {
+      if (!isLatestRequest(requestId)) {
+        return;
+      }
       stopLoadingAudio();
       stopInteractiveLoader();
       arCaptureShell.classList.remove('is-processing');
@@ -830,6 +968,8 @@ export function initArExperience() {
       console.error('Swap failed:', error);
     } finally {
       blendInFlight = false;
+      if (!queuedSceneBlend) stopLoadingAudio();
+      triggerQueuedSceneBlend();
     }
   });
   arCaptureBtn.addEventListener('pointerdown', primeLoadingAudioFromGesture, { passive: true });
@@ -841,12 +981,46 @@ export function initArExperience() {
     button.addEventListener('click', async () => {
       arSceneButtons.forEach((item) => item.classList.remove('is-active'));
       button.classList.add('is-active');
+      const requestId = nextRequestId();
       applyArSceneDepth(arSceneButtons);
       syncStageLayout();
       syncStagePreview();
       arCaptureNote.textContent = `Scene locked: ${getActiveSceneName(arSceneButtons)}.`;
 
-      if (arCaptureShell.classList.contains('is-result') && captureState && !blendInFlight) {
+      const selectedSceneSrc = getSceneImageSrc(arSceneButtons);
+      const selectedCacheKey = buildSceneCacheKey(selectedSceneSrc);
+      if (selectedCacheKey && resultCache.has(selectedCacheKey)) {
+        const cachedSrc = resultCache.get(selectedCacheKey);
+        await runQuickCacheTransition(getActiveSceneName(arSceneButtons));
+        if (!isLatestRequest(requestId)) {
+          return;
+        }
+        await applyBlendOutput(cachedSrc);
+        arCaptureShell.classList.add('is-result');
+        arCaptureNote.textContent = `Scene blended: ${getActiveSceneName(arSceneButtons)}.`;
+        updateResultActionState();
+        return;
+      }
+
+      if (captureState && blendInFlight) {
+        queuedSceneBlend = true;
+        const activeSceneName = getActiveSceneName(arSceneButtons);
+        if (arProcessingTitle) {
+          arProcessingTitle.textContent = activeSceneName === 'Upside Down' ? 'Opening Upside Down gate...' : 'Stabilizing portal...';
+        }
+        if (arProcessingSub) {
+          arProcessingSub.textContent = `Binding to ${activeSceneName} scene`;
+        }
+        startInteractiveLoader(activeSceneName);
+        arCaptureShell.classList.add('is-processing');
+        arCaptureShell.classList.remove('is-result');
+        arProcessing.setAttribute('aria-hidden', 'false');
+        arCaptureNote.textContent = `Reblending for ${activeSceneName}...`;
+        startLoadingAudio();
+        return;
+      }
+
+      if (captureState && !blendInFlight) {
         try {
           blendInFlight = true;
           const activeSceneName = getActiveSceneName(arSceneButtons);
@@ -862,7 +1036,11 @@ export function initArExperience() {
           arProcessing.setAttribute('aria-hidden', 'false');
           arCaptureNote.textContent = `Reblending for ${activeSceneName}...`;
           startLoadingAudio();
-          await renderCurrentBlend();
+          const blendResult = await renderCurrentBlend(selectedSceneSrc);
+          if (!blendResult || !isLatestRequest(requestId)) {
+            return;
+          }
+          await applyBlendOutput(blendResult.outputSrc);
           stopInteractiveLoader();
           arCaptureShell.classList.remove('is-processing');
           arCaptureShell.classList.add('is-result');
@@ -871,6 +1049,9 @@ export function initArExperience() {
           arCaptureNote.textContent = `Scene blended: ${getActiveSceneName(arSceneButtons)}.`;
           updateResultActionState();
         } catch (error) {
+          if (!isLatestRequest(requestId)) {
+            return;
+          }
           stopLoadingAudio();
           stopInteractiveLoader();
           arCaptureShell.classList.remove('is-processing');
@@ -878,6 +1059,8 @@ export function initArExperience() {
           arCaptureNote.textContent = `Reblend failed. ${error instanceof Error ? error.message : ''}`.trim();
         } finally {
           blendInFlight = false;
+          if (!queuedSceneBlend) stopLoadingAudio();
+          triggerQueuedSceneBlend();
         }
       }
     });

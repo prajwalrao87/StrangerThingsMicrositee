@@ -1,8 +1,8 @@
-import { detectFaceBox } from './face.js';
+﻿import { detectFaceBox } from './face.js';
 
 let arUiReady = false;
 const AR_DEFAULT_PREVIEW = 'assets/cast/eleven.jpg';
-const HF_SPACE_ID = 'akashh89/FaceIntegrator';
+const HF_SPACE_ID = 'akashh89/faceIntergrator';
 const GRADIO_PREDICT_API = '/swap_face';
 const SWAP_TIMEOUT_MS = 240000;
 const CAPTURE_MAX_WIDTH = 1280;
@@ -14,7 +14,6 @@ const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
 const GRADIO_CLIENT_CDN = 'https://cdn.jsdelivr.net/npm/@gradio/client/+esm';
 
 let gradioClientPromise = null;
-let gradioApiInfoPromise = null;
 
 const AR_LOADING_AUDIO_SRC = '/assets/audios/StrangerThings.mp3';
 const AR_LOADING_AUDIO_SRC_FALLBACK = 'assets/audios/StrangerThings.mp3';
@@ -107,50 +106,56 @@ async function getGradioClient() {
   return gradioClientPromise;
 }
 
-async function getGradioApiInfo(client) {
-  if (!gradioApiInfoPromise) {
-    gradioApiInfoPromise = client.view_api();
-  }
-  return gradioApiInfoPromise;
+function toEndpointCandidates() {
+  // From backend config:
+  // api_name: "swap_face", queue enabled, inputs order [source, target, enhance]
+  return ['/swap_face', 'swap_face', GRADIO_PREDICT_API];
 }
 
-function toEndpointCandidates(apiInfo) {
-  const candidates = [
-    { type: 'named', value: GRADIO_PREDICT_API }, // from your config: api_name = "swap_face"
-    { type: 'index', value: 2 } // from your config: dependency id 2 (public swap)
-  ];
-
-  const named = apiInfo?.named_endpoints || {};
-  if (named['/swap_face']) {
-    return candidates;
-  }
-
-  // Fallback if API schema changes in future.
-  Object.keys(named).forEach((apiName) => {
-    if (apiName !== '/swap_face') candidates.push({ type: 'named', value: apiName });
+async function runSubmissionWithTimeout(submission, timeoutMs) {
+  const timeoutPromise = new Promise((_, reject) => {
+    window.setTimeout(() => reject(new Error('Swap request timed out.')), timeoutMs);
   });
-  return candidates;
+
+  const consumePromise = (async () => {
+    for await (const message of submission) {
+      if (!message) continue;
+      if (message.type === 'status' && message.stage === 'error') {
+        throw new Error(message.message || 'Swap failed during queue execution.');
+      }
+      if (message.type === 'data') {
+        return message;
+      }
+    }
+    throw new Error('Swap failed: no result event returned.');
+  })();
+
+  return Promise.race([consumePromise, timeoutPromise]);
 }
 
 async function callSwapEndpoint(sourceBlob, targetBlob, enhance) {
   const client = await getGradioClient();
-  const apiInfo = await getGradioApiInfo(client);
   const sourceFile = new File([sourceBlob], 'source-face.jpg', { type: sourceBlob.type || 'image/jpeg' });
   const targetFile = new File([targetBlob], 'target-scene.jpg', { type: targetBlob.type || 'image/jpeg' });
   const payloadArr = [sourceFile, targetFile, !!enhance];
-  const endpointCandidates = toEndpointCandidates(apiInfo);
+  const endpointCandidates = toEndpointCandidates();
 
   let lastError = null;
 
   for (const endpoint of endpointCandidates) {
-    const timeoutPromise = new Promise((_, reject) => {
-      window.setTimeout(() => reject(new Error('Swap request timed out.')), SWAP_TIMEOUT_MS);
-    });
     try {
-      const callPromise = endpoint.type === 'named'
-        ? client.predict(endpoint.value, payloadArr)
-        : client.predict(endpoint.value, payloadArr);
-      const result = await Promise.race([callPromise, timeoutPromise]);
+      // Queue backend: prefer submit() first.
+      let result;
+      try {
+        const submission = client.submit(endpoint, payloadArr);
+        result = await runSubmissionWithTimeout(submission, SWAP_TIMEOUT_MS);
+      } catch (_submitErr) {
+        const timeoutPromise = new Promise((_, reject) => {
+          window.setTimeout(() => reject(new Error('Swap request timed out.')), SWAP_TIMEOUT_MS);
+        });
+        result = await Promise.race([client.predict(endpoint, payloadArr), timeoutPromise]);
+      }
+
       const outputSrc = extractImageFromPredictResponse(result);
       if (!outputSrc) {
         lastError = new Error('Swap response did not include an output image.');
@@ -267,6 +272,7 @@ export function initArExperience() {
   let stream = null;
   let captureState = null;
   let blendInFlight = false;
+  let resultActionInFlight = false;
   let loaderTickTimer = null;
   let loaderTipTimer = null;
   let loaderPercentValue = 0;
@@ -472,11 +478,20 @@ export function initArExperience() {
 
   const updateResultActionState = () => {
     const hasResult = !!getResultSrc();
-    if (arDownloadBtn) arDownloadBtn.disabled = !hasResult;
-    if (arShareBtn) arShareBtn.disabled = !hasResult;
+    if (arDownloadBtn) arDownloadBtn.disabled = !hasResult || resultActionInFlight;
+    if (arShareBtn) arShareBtn.disabled = !hasResult || resultActionInFlight;
   };
 
   const toResultBlob = async () => {
+    // Fast path: export what is already rendered on canvas.
+    if (arBlendCanvas.width > 0 && arBlendCanvas.height > 0) {
+      try {
+        return await canvasToBlob(arBlendCanvas, 'image/png', 0.96);
+      } catch (_err) {
+        // Fallback below.
+      }
+    }
+
     const src = getResultSrc();
     if (src) {
       try {
@@ -646,6 +661,7 @@ export function initArExperience() {
 
   if (arDownloadBtn) {
     arDownloadBtn.addEventListener('click', async () => {
+      if (resultActionInFlight) return;
       const src = getResultSrc();
       if (!src) {
         arCaptureNote.textContent = 'Capture and blend first to download.';
@@ -653,6 +669,8 @@ export function initArExperience() {
       }
 
       try {
+        resultActionInFlight = true;
+        updateResultActionState();
         const blob = await toResultBlob();
         const downloadUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -665,12 +683,16 @@ export function initArExperience() {
       } catch (error) {
         const detail = error instanceof Error ? error.message : 'Download failed.';
         arCaptureNote.textContent = `Download failed. ${detail}`;
+      } finally {
+        resultActionInFlight = false;
+        updateResultActionState();
       }
     });
   }
 
   if (arShareBtn) {
     arShareBtn.addEventListener('click', async () => {
+      if (resultActionInFlight) return;
       if (!getResultSrc()) {
         arCaptureNote.textContent = 'Capture and blend first to share.';
         return;
@@ -682,6 +704,8 @@ export function initArExperience() {
       }
 
       try {
+        resultActionInFlight = true;
+        updateResultActionState();
         const blob = await toResultBlob();
         const extension = (blob.type || '').includes('jpeg') ? 'jpg' : 'png';
         const file = new File([blob], `stranger-things-avatar.${extension}`, {
@@ -706,6 +730,9 @@ export function initArExperience() {
         if (error instanceof Error && error.name === 'AbortError') return;
         const detail = error instanceof Error ? error.message : 'Share failed.';
         arCaptureNote.textContent = `Share failed. ${detail}`;
+      } finally {
+        resultActionInFlight = false;
+        updateResultActionState();
       }
     });
   }
@@ -883,3 +910,4 @@ export function initArExperience() {
 
   updateResultActionState();
 }
+

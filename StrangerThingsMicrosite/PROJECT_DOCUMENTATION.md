@@ -57,7 +57,7 @@ Validation thresholds:
 
 ## Backend Integration (Current)
 Configured in `js/ar/app.js`:
-- Space ID: `akashh89/FaceIntegrator`
+- Space ID: `akashh89/faceIntegrator`
 - Preferred API name: `/swap_face`
 - Fallback `fn_index`: `2`
 - Gradio client loaded from CDN:

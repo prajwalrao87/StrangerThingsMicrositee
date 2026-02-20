@@ -963,6 +963,7 @@ main section[id] {
 .ar-capture-shell.is-processing .ar-processing {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 .ar-processing strong {
@@ -975,6 +976,59 @@ main section[id] {
 .ar-processing small {
   font-size: clamp(0.95rem, 1.35vw, 1.2rem);
   color: rgba(218, 215, 209, 0.8);
+}
+
+.ar-loader-meter {
+  width: min(300px, 76vw);
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 122, 131, 0.45);
+  background: rgba(38, 6, 11, 0.88);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.65);
+}
+
+.ar-loader-meter-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #ff5c6d 0%, #ffb36d 58%, #ffe19e 100%);
+  box-shadow: 0 0 14px rgba(255, 114, 122, 0.65);
+  transition: width 260ms linear;
+}
+
+.ar-loader-percent {
+  margin-top: 0.15rem;
+  font-size: 0.88rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 210, 170, 0.9);
+}
+
+.ar-loader-charge {
+  margin-top: 0.2rem;
+  border: 1px solid rgba(255, 134, 143, 0.62);
+  border-radius: 999px;
+  background: linear-gradient(150deg, rgba(88, 13, 24, 0.96), rgba(42, 6, 12, 0.96));
+  color: #ffd8b1;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.36rem 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(226, 68, 81, 0.28);
+}
+
+.ar-loader-charge:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.ar-loader-tip {
+  max-width: min(320px, 80vw);
+  text-align: center;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: rgba(231, 223, 207, 0.78);
 }
 
 .ar-spinner {

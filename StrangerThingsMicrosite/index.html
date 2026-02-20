@@ -225,13 +225,19 @@
               </span>
               Capture Photo
             </button>
-            <div class="ar-processing" id="arProcessing" aria-hidden="true">
-              <span class="ar-spinner" aria-hidden="true"></span>
-              <strong>Stabilizing portal...</strong>
-              <small>Preparing your Hawkins avatar</small>
+             <div class="ar-processing" id="arProcessing" aria-hidden="true">
+                <span class="ar-spinner" aria-hidden="true"></span>
+                <strong>Stabilizing portal...</strong>
+                <small>Preparing your Hawkins avatar</small>
+                <div class="ar-loader-meter" aria-hidden="true">
+                  <div class="ar-loader-meter-fill" id="arLoaderMeterFill"></div>
+                </div>
+                <div class="ar-loader-percent" id="arLoaderPercent">Initializing: 0%</div>
+                <button class="ar-loader-charge" id="arLoaderChargeBtn" type="button">Tap to boost portal</button>
+                <div class="ar-loader-tip" id="arLoaderTip">Tip: Tap boost while we blend your avatar.</div>
+              </div>
             </div>
           </div>
-        </div>
       </div>
       <p class="ar-capture-note" id="arCaptureNote">Background and edges are cleaned after capture.</p>
 

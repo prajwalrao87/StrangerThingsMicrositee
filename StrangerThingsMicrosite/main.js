@@ -163,7 +163,7 @@ function openDiceOverlay() {
   diceOverlay.classList.add('open');
   diceOverlay.setAttribute('aria-hidden', 'false');
   if (diceFace) diceFace.textContent = '?';
-  if (diceHint) diceHint.textContent = 'Roll to enter the Upside Down';
+  if (diceHint) diceHint.textContent = 'Only a true roll opens the Upside Down';
 }
 
 function closeDiceOverlay() {
@@ -259,25 +259,33 @@ if (diceBtn) {
     rolling = true;
     diceBtn.classList.add('rolling');
 
+    const totalTicks = 14;
     let tick = 0;
-    const spin = setInterval(() => {
+
+    const runTick = () => {
       tick += 1;
       const randomVal = Math.floor(Math.random() * 5) + 1;
       if (diceFace) diceFace.textContent = String(randomVal);
 
-      if (tick >= 10) {
-        clearInterval(spin);
+      if (tick >= totalTicks) {
         const finalRoll = 5;
         if (diceFace) diceFace.textContent = String(finalRoll);
-        if (diceHint) diceHint.textContent = `Rolled ${finalRoll}. Entering the Upside Down...`;
+        if (diceHint) diceHint.textContent = `Rolled ${finalRoll}. The gate is opening...`;
         setTimeout(() => {
           setUpsideState(true);
           closeDiceOverlay();
           diceBtn.classList.remove('rolling');
           rolling = false;
-        }, 650);
+        }, 520);
+        return;
       }
-    }, 80);
+
+      // Decelerate like a real die settling.
+      const nextDelayMs = 40 + (tick * 9);
+      setTimeout(runTick, nextDelayMs);
+    };
+
+    runTick();
   });
 }
 if (upsideExitBtn) {

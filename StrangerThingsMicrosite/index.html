@@ -286,11 +286,14 @@
       <div class="dice-overlay" id="diceOverlay" aria-hidden="true">
         <div class="dice-dialog" role="dialog" aria-label="Upside Down Dice">
           <button class="dice-close" id="diceCloseBtn" type="button" aria-label="Close Dice">&times;</button>
-          <p>Tap the dice to roll your fate</p>
+          <p>Roll the Hellfire die to open the gate</p>
           <button class="dice-btn" id="diceBtn" type="button" aria-label="Roll Dice">
-            <span id="diceFace">?</span>
+            <span class="dice-ring" aria-hidden="true"></span>
+            <span class="dice-core">
+              <span id="diceFace">?</span>
+            </span>
           </button>
-          <small id="diceHint">Roll to enter the Upside Down</small>
+          <small id="diceHint">Only a true roll opens the Upside Down</small>
         </div>
       </div>
     </section>

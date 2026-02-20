@@ -10,6 +10,7 @@ const CAPTURE_JPEG_QUALITY = 0.96;
 const FACE_ENHANCE_DEFAULT = true;
 const FACE_DETECT_MIN_AREA_RATIO = 0.055;
 const FACE_DETECT_MIN_WIDTH_RATIO = 0.2;
+const AR_CACHE_STORAGE_KEY = 'st_ar_scene_cache_v1';
 
 const GRADIO_CLIENT_CDN = 'https://cdn.jsdelivr.net/npm/@gradio/client/+esm';
 
@@ -71,6 +72,14 @@ function dataUrlToBlob(dataUrl) {
     bytes[i] = binary.charCodeAt(i);
   }
   return new Blob([bytes], { type: mime });
+}
+
+async function hashBlobSha256(blob) {
+  const buffer = await blob.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function extractImageFromPredictResponse(result) {
@@ -271,8 +280,10 @@ export function initArExperience() {
 
   let stream = null;
   let captureState = null;
+  let captureId = '';
   let blendInFlight = false;
   let resultActionInFlight = false;
+  const resultCache = new Map();
   let loaderTickTimer = null;
   let loaderTipTimer = null;
   let loaderPercentValue = 0;
@@ -476,6 +487,58 @@ export function initArExperience() {
 
   const getResultSrc = () => arResultImage?.getAttribute('src') || '';
 
+  const loadSessionCache = () => {
+    try {
+      const raw = sessionStorage.getItem(AR_CACHE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      if (typeof parsed.captureId === 'string') captureId = parsed.captureId;
+      const entries = parsed.results && typeof parsed.results === 'object'
+        ? Object.entries(parsed.results)
+        : [];
+      entries.forEach(([key, value]) => {
+        if (typeof key === 'string' && typeof value === 'string') {
+          resultCache.set(key, value);
+        }
+      });
+    } catch (_err) {
+      // No-op if session cache is unavailable/corrupted.
+    }
+  };
+
+  const saveSessionCache = () => {
+    try {
+      const resultsObj = {};
+      resultCache.forEach((value, key) => {
+        resultsObj[key] = value;
+      });
+      sessionStorage.setItem(AR_CACHE_STORAGE_KEY, JSON.stringify({
+        captureId,
+        results: resultsObj
+      }));
+    } catch (_err) {
+      // No-op if storage is blocked.
+    }
+  };
+
+  const clearSessionCache = () => {
+    captureId = '';
+    resultCache.clear();
+    try {
+      sessionStorage.removeItem(AR_CACHE_STORAGE_KEY);
+    } catch (_err) {
+      // No-op if storage is blocked.
+    }
+  };
+
+  const buildSceneCacheKey = (sceneSrc) => {
+    if (!captureId || !sceneSrc) return '';
+    return `${captureId}__${sceneSrc}`;
+  };
+
+  loadSessionCache();
+
   const updateResultActionState = () => {
     const hasResult = !!getResultSrc();
     if (arDownloadBtn) arDownloadBtn.disabled = !hasResult || resultActionInFlight;
@@ -629,6 +692,7 @@ export function initArExperience() {
     if (arScenesStrip) {
       arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
+    clearSessionCache();
     resetCaptureState();
     pauseLoadingAudioOnFullClose();
     syncStagePreview();
@@ -636,14 +700,31 @@ export function initArExperience() {
   };
 
   const renderCurrentBlend = async () => {
-    if (!captureState) return;
     const sceneSrc = getSceneImageSrc(arSceneButtons);
     if (!sceneSrc) throw new Error('No scene selected');
-    await renderHostedSwap({
+    const cacheKey = buildSceneCacheKey(sceneSrc);
+
+    if (cacheKey && resultCache.has(cacheKey)) {
+      const cachedSrc = resultCache.get(cacheKey);
+      if (arResultImage) {
+        arResultImage.src = cachedSrc;
+        arResultImage.style.display = 'block';
+      }
+      await drawImageToCanvas(cachedSrc, arBlendCanvas);
+      return;
+    }
+
+    if (!captureState) return;
+
+    const outputSrc = await renderHostedSwap({
       outCanvas: arBlendCanvas,
       sourceBlob: captureState.frameBlob,
       sceneSrc
     });
+    if (cacheKey && outputSrc) {
+      resultCache.set(cacheKey, outputSrc);
+      saveSessionCache();
+    }
     syncStageLayout();
     syncStagePreview();
   };
@@ -807,6 +888,12 @@ export function initArExperience() {
 
       const frameBlob = await canvasToBlob(frameCanvas, 'image/jpeg', CAPTURE_JPEG_QUALITY);
       captureState = { frameBlob };
+      const nextCaptureId = await hashBlobSha256(frameBlob);
+      if (captureId !== nextCaptureId) {
+        captureId = nextCaptureId;
+        resultCache.clear();
+      }
+      saveSessionCache();
       // Turn camera off immediately after capture.
       releaseCameraStream();
       await renderCurrentBlend();
@@ -845,6 +932,25 @@ export function initArExperience() {
       syncStageLayout();
       syncStagePreview();
       arCaptureNote.textContent = `Scene locked: ${getActiveSceneName(arSceneButtons)}.`;
+
+      const selectedSceneSrc = getSceneImageSrc(arSceneButtons);
+      const selectedCacheKey = buildSceneCacheKey(selectedSceneSrc);
+      if (selectedCacheKey && resultCache.has(selectedCacheKey)) {
+        const cachedSrc = resultCache.get(selectedCacheKey);
+        arCaptureShell.classList.remove('is-processing');
+        arCaptureShell.classList.add('is-result');
+        arProcessing.setAttribute('aria-hidden', 'true');
+        stopInteractiveLoader();
+        stopLoadingAudio();
+        if (arResultImage) {
+          arResultImage.src = cachedSrc;
+          arResultImage.style.display = 'block';
+        }
+        await drawImageToCanvas(cachedSrc, arBlendCanvas);
+        arCaptureNote.textContent = `Scene blended: ${getActiveSceneName(arSceneButtons)}.`;
+        updateResultActionState();
+        return;
+      }
 
       if (arCaptureShell.classList.contains('is-result') && captureState && !blendInFlight) {
         try {

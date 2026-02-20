@@ -1863,7 +1863,29 @@ body.upside-theme::before {
   --rift-y: 50%;
   background:
     radial-gradient(circle at var(--rift-x) var(--rift-y), rgba(208, 33, 55, 0.2), transparent 30%),
-    linear-gradient(180deg, rgba(17, 8, 12, 0.86), rgba(8, 6, 11, 0.94));
+      linear-gradient(180deg, rgba(17, 8, 12, 0.86), rgba(8, 6, 11, 0.94));
+}
+
+#upside-down > h3,
+#upside-down > p,
+#upside-down .upside-game {
+  position: relative;
+  z-index: 2;
+}
+
+#upside-down > p {
+  color: rgba(241, 230, 222, 0.9);
+}
+
+#upsideEnterBtn {
+  color: #fff;
+  background: linear-gradient(140deg, #ff3847, #b80c17);
+  box-shadow: 0 10px 20px rgba(183, 9, 20, 0.35);
+  opacity: 1;
+}
+
+#upsideEnterBtn:hover {
+  filter: brightness(1.05);
 }
 
 #upside-down::before {

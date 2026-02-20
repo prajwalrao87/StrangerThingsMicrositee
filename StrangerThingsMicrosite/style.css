@@ -285,10 +285,21 @@ main section[id] {
 }
 
 .panel.frame-tilt,
+.panel-ar.frame-tilt,
 .ar-scenes.frame-tilt,
 .upside-portal.frame-tilt,
 .site-footer.frame-tilt {
   overflow: hidden;
+}
+
+.panel-ar.is-camera-open.frame-tilt::after {
+  opacity: 0 !important;
+}
+
+/* Keep scene-card hover visuals clean (no panel glass sheen over cards). */
+.panel-ar.frame-tilt:has(.ar-scenes:hover)::after,
+.panel-ar.frame-tilt:has(.ar-scenes:focus-within)::after {
+  opacity: 0 !important;
 }
 
 .frame-reveal {

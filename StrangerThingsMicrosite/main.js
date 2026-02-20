@@ -22,10 +22,30 @@ const arLaunchImage = document.querySelector('#arLaunchBtn img');
 const upsidePanel = document.getElementById('upside-down');
 const upsidePortal = document.querySelector('.upside-portal');
 const riftSignalLine = document.getElementById('riftSignalLine');
+const castCards = Array.from(document.querySelectorAll('#cast .card'));
+const castSpotlight = document.getElementById('castSpotlight');
+const castSpotlightPanel = document.getElementById('castSpotlightPanel');
+const castSpotlightBackdrop = document.getElementById('castSpotlightBackdrop');
+const castSpotlightClose = document.getElementById('castSpotlightClose');
+const castSpotlightImage = document.getElementById('castSpotlightImage');
+const castSpotlightName = document.getElementById('castSpotlightName');
+const castSpotlightBio = document.getElementById('castSpotlightBio');
+const castSpotlightAge = document.getElementById('castSpotlightAge');
+const castSpotlightFood = document.getElementById('castSpotlightFood');
+const castSpotlightSkill = document.getElementById('castSpotlightSkill');
 const frameTargets = Array.from(document.querySelectorAll('.hero, .panel:not(.panel-ar), .upside-portal, .site-footer'));
 
 if (diceOverlay && diceOverlay.parentElement !== document.body) {
   document.body.appendChild(diceOverlay);
+}
+if (castSpotlight && castSpotlight.parentElement !== document.body) {
+  document.body.appendChild(castSpotlight);
+}
+if (diceOverlay) {
+  diceOverlay.setAttribute('inert', '');
+}
+if (castSpotlight) {
+  castSpotlight.setAttribute('inert', '');
 }
 
 if (arLaunchImage) {
@@ -160,16 +180,178 @@ function setUpsideState(isOn) {
 
 function openDiceOverlay() {
   if (!diceOverlay) return;
+  diceOverlay.removeAttribute('inert');
   diceOverlay.classList.add('open');
   diceOverlay.setAttribute('aria-hidden', 'false');
   if (diceFace) diceFace.textContent = '?';
   if (diceHint) diceHint.textContent = 'Only a true roll opens the Upside Down';
+  if (diceBtn) diceBtn.focus();
 }
 
 function closeDiceOverlay() {
   if (!diceOverlay) return;
+  if (document.activeElement && diceOverlay.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
   diceOverlay.classList.remove('open');
+  diceOverlay.setAttribute('inert', '');
   diceOverlay.setAttribute('aria-hidden', 'true');
+  if (upsideEnterBtn) upsideEnterBtn.focus();
+}
+
+function initCastSpotlight() {
+  if (!castSpotlight || !castSpotlightPanel || castCards.length === 0) return;
+
+  const castProfiles = {
+    eleven: {
+      age: '15',
+      food: 'Eggo waffles',
+      skill: 'Psychokinesis',
+      bio: 'Raised in Hawkins Lab as Test Subject 011, Eleven became the emotional core of the party. Across the series she balances immense telekinetic power with a difficult search for identity, family, and normal life.'
+    },
+    mike: {
+      age: '15',
+      food: 'Pancakes',
+      skill: 'Party strategist',
+      bio: 'Mike is the planner who keeps the group united under pressure. From the first missing-person mystery to the final war build-up, his loyalty and leadership anchor the Hawkins crew.'
+    },
+    will: {
+      age: '15',
+      food: 'PB&J sandwich',
+      skill: 'Rift sensitivity',
+      bio: 'Will\'s connection to the Upside Down makes him one of the most important signals in the story. His sensitivity to Vecna and the hive mind repeatedly warns the team before disaster lands.'
+    },
+    dustin: {
+      age: '15',
+      food: 'Chocolate pudding',
+      skill: 'Tech + radio hacks',
+      bio: 'Dustin combines scientific curiosity, humor, and quick improvisation. Whether decoding transmissions or engineering solutions, he turns panic into tactical momentum.'
+    },
+    lucos: {
+      age: '15',
+      food: 'Cereal bowls',
+      skill: 'Sharpshooter',
+      bio: 'Lucas evolves into a fearless frontline defender for the party. He brings grounded judgment and clutch action when the supernatural threat spills into real-world danger.'
+    },
+    max: {
+      age: '15',
+      food: 'Cherry slushie',
+      skill: 'Fear resistance',
+      bio: 'Max\'s arc is one of the most intense in the series, facing grief and Vecna\'s psychological attacks head-on. Her resilience represents the show\'s theme of fighting darkness together.'
+    },
+    nancy: {
+      age: '18',
+      food: 'Black coffee',
+      skill: 'Relentless investigator',
+      bio: 'Nancy is the investigative engine of Hawkins, turning fragments into hard evidence. Her sharp instincts and fearless action keep the older team one step ahead of unfolding threats.'
+    },
+    steve: {
+      age: '19',
+      food: 'Scoops Ahoy sundae',
+      skill: 'Protector mode',
+      bio: 'Steve grows from high-school king into the party\'s most reliable shield. He repeatedly chooses danger to protect the younger crew, becoming one of Hawkins\' strongest guardians.'
+    },
+    vecna: {
+      age: 'Unknown',
+      food: 'Nightmare energy',
+      skill: 'Mind invasion',
+      bio: 'Vecna is the central mind behind Hawkins\' escalating terror, weaponizing trauma and isolation. His presence ties the Upside Down mythos into the final high-stakes endgame.'
+    },
+    eddie: {
+      age: '20',
+      food: 'Pepperoni pizza',
+      skill: 'Hellfire morale',
+      bio: 'Eddie, leader of the Hellfire Club, becomes a symbol of courage under pressure. His chaotic charisma and sacrifice cement him as a fan-favorite hero in the Hawkins battle.'
+    }
+  };
+
+  let activeCard = null;
+
+  const profileFor = (name) => castProfiles[(name || '').toLowerCase()] || {
+    age: 'Unknown',
+    food: 'Unknown',
+    skill: 'Unknown',
+    bio: `${name} is part of Hawkins\' frontline against the Upside Down.`
+  };
+
+  const clearActiveCard = () => {
+    castCards.forEach((card) => card.classList.remove('is-spotlight'));
+    activeCard = null;
+  };
+
+  const closeCastSpotlight = () => {
+    if (document.activeElement && castSpotlight.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+    castSpotlight.classList.remove('open');
+    castSpotlight.setAttribute('aria-hidden', 'true');
+    castSpotlight.setAttribute('inert', '');
+    document.body.classList.remove('cast-spotlight-open');
+    document.documentElement.classList.remove('cast-spotlight-open');
+    clearActiveCard();
+  };
+
+  const openCastSpotlight = (card) => {
+    const name = card?.querySelector('h4')?.textContent?.trim() || 'Character';
+    const img = card?.querySelector('img');
+    const imgSrc = img?.getAttribute('src') || '';
+    const imgAlt = img?.getAttribute('alt') || name;
+    const profile = profileFor(name);
+
+    clearActiveCard();
+    activeCard = card;
+    card.classList.add('is-spotlight');
+
+    if (castSpotlightImage) {
+      castSpotlightImage.src = imgSrc;
+      castSpotlightImage.alt = imgAlt;
+    }
+    if (castSpotlightName) castSpotlightName.textContent = name;
+    if (castSpotlightBio) castSpotlightBio.textContent = profile.bio;
+    if (castSpotlightAge) castSpotlightAge.textContent = `Age: ${profile.age}`;
+    if (castSpotlightFood) castSpotlightFood.textContent = `Fav Food: ${profile.food}`;
+    if (castSpotlightSkill) castSpotlightSkill.textContent = `Signature: ${profile.skill}`;
+
+    castSpotlight.classList.add('open');
+    castSpotlight.setAttribute('aria-hidden', 'false');
+    castSpotlight.removeAttribute('inert');
+    document.body.classList.add('cast-spotlight-open');
+    document.documentElement.classList.add('cast-spotlight-open');
+    if (castSpotlightClose) castSpotlightClose.focus();
+  };
+
+  castCards.forEach((card) => {
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.addEventListener('click', () => {
+      openCastSpotlight(card);
+    });
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openCastSpotlight(card);
+      }
+    });
+  });
+
+  if (castSpotlightClose) {
+    castSpotlightClose.addEventListener('click', closeCastSpotlight);
+    castSpotlightClose.addEventListener('pointerup', closeCastSpotlight);
+    castSpotlightClose.addEventListener('touchend', closeCastSpotlight, { passive: true });
+  }
+
+  if (castSpotlightBackdrop) {
+    castSpotlightBackdrop.addEventListener('click', closeCastSpotlight);
+  }
+
+  document.addEventListener('click', (event) => {
+    if (!castSpotlight.classList.contains('open')) return;
+    const target = event.target;
+    const clickedCard = target instanceof Element ? target.closest('#cast .card') : null;
+    if (clickedCard) return;
+    if (target instanceof Element && target.closest('#castSpotlightPanel')) return;
+    closeCastSpotlight();
+  });
 }
 
 function updateRiftSignal() {
@@ -389,6 +571,13 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     closeTrailer();
     closeDiceOverlay();
+    if (castSpotlight) {
+      castSpotlight.classList.remove('open');
+      castSpotlight.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('cast-spotlight-open');
+      document.documentElement.classList.remove('cast-spotlight-open');
+      castCards.forEach((card) => card.classList.remove('is-spotlight'));
+    }
   }
 });
 
@@ -465,4 +654,5 @@ if (frameTargets.length) {
 
 animateParallax();
 updateRiftSignal();
+initCastSpotlight();
 initArExperience();

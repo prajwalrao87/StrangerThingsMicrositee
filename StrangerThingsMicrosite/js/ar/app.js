@@ -286,76 +286,58 @@ export function initArExperience() {
     ? new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 })
     : null;
 
+  // Prime loading audio from a user gesture (mobile-safe):
+  // - On first tap/click, start playing the audio muted and keep it running.
+  // - Later, we just unmute it during processing.
   const primeLoadingAudioFromGesture = () => {
     if (audioPrimed) return;
+
     try {
-      loadingAudio.muted = false;
-      loadingAudio.volume = 0.01;
-      const primeAttempt = loadingAudio.play();
-      if (primeAttempt && typeof primeAttempt.then === 'function') {
-        primeAttempt.then(() => {
-          if (!loadingAudioRequested) {
-            loadingAudio.pause();
-            loadingAudio.currentTime = 0;
-          }
-          loadingAudio.muted = false;
-          loadingAudio.volume = 0.9;
-          audioPrimed = true;
-        }).catch(() => {
-          // Fallback unlock flow for stricter mobile autoplay policies.
-          try {
-            loadingAudio.muted = true;
-            const mutedAttempt = loadingAudio.play();
-            if (mutedAttempt && typeof mutedAttempt.then === 'function') {
-              mutedAttempt.then(() => {
-                if (!loadingAudioRequested) {
-                  loadingAudio.pause();
-                  loadingAudio.currentTime = 0;
-                }
-                loadingAudio.muted = false;
-                loadingAudio.volume = 0.9;
-                audioPrimed = true;
-              }).catch(() => {
-                loadingAudio.muted = false;
-                loadingAudio.volume = 0.9;
-              });
-            } else {
-              loadingAudio.muted = false;
-              loadingAudio.volume = 0.9;
-            }
-          } catch (_err) {
-            loadingAudio.muted = false;
-            loadingAudio.volume = 0.9;
-          }
-        });
+      loadingAudio.muted = true;
+      loadingAudio.volume = 0; // make sure it's fully silent initially
+
+      const playPromise = loadingAudio.play();
+
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise
+          .then(() => {
+            // Audio is now playing (muted) and looped in the background.
+            audioPrimed = true;
+          })
+          .catch((err) => {
+            console.warn('Audio prime failed:', err);
+          });
       } else {
-        loadingAudio.volume = 0.9;
+        // Older browsers without promise support
+        audioPrimed = true;
       }
-    } catch (_err) {
-      loadingAudio.muted = false;
-      loadingAudio.volume = 0.9;
+    } catch (err) {
+      console.warn('Audio prime error:', err);
     }
   };
 
+  // When processing/blending starts, just unmute and set volume.
+  // The audio should already be playing (muted) from a prior user gesture.
   const startLoadingAudio = () => {
     try {
       loadingAudioRequested = true;
+
+      // In case priming somehow didn't happen (mostly desktop),
+      // try to prime now - still usually called from a gesture.
+      if (!audioPrimed) {
+        primeLoadingAudioFromGesture();
+      }
+
+      // Unmute and bring volume up; on mobile this is allowed
+      // because the audio is already playing from the user gesture.
       loadingAudio.muted = false;
       loadingAudio.volume = 0.9;
-      loadingAudio.currentTime = 0;
-      const playAttempt = loadingAudio.play();
-      if (playAttempt && typeof playAttempt.catch === 'function') {
-        playAttempt.catch(() => {
-          // Some mobile browsers need an explicit load + replay.
-          try {
-            loadingAudio.load();
-            const retry = loadingAudio.play();
-            if (retry && typeof retry.catch === 'function') {
-              retry.catch(() => {});
-            }
-          } catch (_err) {
-            // No-op.
-          }
+
+      // Optional: for safety on some desktop browsers if audio somehow paused
+      const maybePromise = loadingAudio.play();
+      if (maybePromise && typeof maybePromise.catch === 'function') {
+        maybePromise.catch(() => {
+          // Silent fail, UI continues even if audio can't play.
         });
       }
     } catch (_err) {
@@ -363,11 +345,35 @@ export function initArExperience() {
     }
   };
 
+  // When processing ends, mute the audio instead of fully pausing it.
+  // This keeps the "autoplay unlocked" state for mobile.
   const stopLoadingAudio = () => {
     try {
       loadingAudioRequested = false;
+
+      // Keep playing but silent, so we don't lose mobile autoplay permission.
+      loadingAudio.muted = true;
+      loadingAudio.volume = 0;
+
+      // If you really want it totally off, you could pause instead,
+      // but then you'd need a new user gesture to re-prime:
+      // loadingAudio.pause();
+      // loadingAudio.currentTime = 0;
+    } catch (_err) {
+      // No-op: keep flow resilient.
+    }
+  };
+
+  // Full shutdown path (camera close/page unload):
+  // pause to avoid background CPU/battery usage while AR is inactive.
+  const pauseLoadingAudioOnFullClose = () => {
+    try {
+      loadingAudioRequested = false;
+      loadingAudio.muted = true;
+      loadingAudio.volume = 0;
       loadingAudio.pause();
       loadingAudio.currentTime = 0;
+      audioPrimed = false;
     } catch (_err) {
       // No-op: keep flow resilient.
     }
@@ -525,6 +531,7 @@ export function initArExperience() {
       arScenesStrip.style.transform = 'translate3d(0, 0, 0)';
     }
     resetCaptureState();
+    pauseLoadingAudioOnFullClose();
     syncStagePreview();
     arLaunchBtn?.focus();
   };
@@ -773,7 +780,7 @@ export function initArExperience() {
   });
 
   window.addEventListener('beforeunload', () => {
-    stopLoadingAudio();
+    pauseLoadingAudioOnFullClose();
     releaseCameraStream();
   });
 

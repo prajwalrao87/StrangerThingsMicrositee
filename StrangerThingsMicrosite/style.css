@@ -951,7 +951,7 @@ main section[id] {
   justify-items: center;
   gap: 0.55rem;
   background:
-    radial-gradient(circle at 50% 40%, rgba(95, 14, 27, 0.4), rgba(0, 0, 0, 0.96) 62%),
+    radial-gradient(circle at 50% 36%, rgba(145, 22, 38, 0.5), rgba(0, 0, 0, 0.97) 62%),
     #000;
   border-radius: 8px;
   opacity: 0;
@@ -963,18 +963,141 @@ main section[id] {
 .ar-capture-shell.is-processing .ar-processing {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 .ar-processing strong {
   font-size: clamp(1.25rem, 2.2vw, 2rem);
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 0 14px rgba(185, 27, 42, 0.38);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffe7d2;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(185, 27, 42, 0.58);
 }
 
 .ar-processing small {
   font-size: clamp(0.95rem, 1.35vw, 1.2rem);
-  color: rgba(218, 215, 209, 0.8);
+  color: rgba(237, 224, 205, 0.85);
+  letter-spacing: 0.03em;
+}
+
+.ar-loader-meter {
+  width: min(300px, 76vw);
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 150, 120, 0.62);
+  position: relative;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 213, 178, 0.09) 0,
+      rgba(255, 213, 178, 0.09) 10px,
+      rgba(0, 0, 0, 0) 10px,
+      rgba(0, 0, 0, 0) 14px
+    ),
+    rgba(30, 6, 10, 0.9);
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.75),
+    inset 0 0 0 1px rgba(255, 191, 150, 0.08),
+    0 0 0 1px rgba(255, 130, 110, 0.25),
+    0 0 16px rgba(255, 90, 90, 0.2),
+    0 0 34px rgba(255, 76, 76, 0.16);
+  transform: skewX(-14deg);
+}
+
+.ar-loader-meter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 242, 227, 0.42) 48%, rgba(255, 255, 255, 0) 100%);
+  transform: translateX(-120%);
+  animation: arHudSweep 2.2s linear infinite;
+}
+
+.ar-loader-meter::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  border-radius: 3px;
+  box-shadow: 0 0 18px rgba(255, 90, 85, 0.28), 0 0 38px rgba(255, 75, 60, 0.2);
+  animation: arHudAuraPulse 1.8s ease-in-out infinite;
+}
+
+.ar-loader-meter-fill {
+  width: 0%;
+  height: 100%;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 40%),
+    linear-gradient(90deg, #ff3e5a 0%, #ff6a4b 38%, #ffa653 72%, #ffd08f 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 233, 194, 0.22),
+    0 0 14px rgba(255, 97, 97, 0.65),
+    0 0 30px rgba(255, 118, 88, 0.45);
+  transform-origin: left center;
+  transition: width 220ms ease-out;
+  filter: saturate(1.12) contrast(1.04);
+  position: relative;
+}
+
+.ar-loader-meter-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    120deg,
+    rgba(255, 243, 220, 0.2) 0,
+    rgba(255, 243, 220, 0.2) 6px,
+    rgba(255, 243, 220, 0) 6px,
+    rgba(255, 243, 220, 0) 12px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.75;
+}
+
+.ar-loader-percent {
+  margin-top: 0.15rem;
+  font-size: 0.88rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 210, 170, 0.9);
+}
+
+.ar-loader-charge {
+  margin-top: 0.2rem;
+  border: 1px solid rgba(255, 159, 99, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(155deg, rgba(120, 20, 22, 0.98), rgba(62, 8, 10, 0.98));
+  color: #ffe7c4;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.42rem 1.06rem;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(226, 68, 81, 0.4), inset 0 0 0 1px rgba(255, 223, 180, 0.08);
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+}
+
+.ar-loader-charge:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 20px rgba(255, 91, 73, 0.52), inset 0 0 0 1px rgba(255, 223, 180, 0.12);
+}
+
+.ar-loader-charge:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.ar-loader-tip {
+  max-width: min(320px, 80vw);
+  text-align: center;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: rgba(244, 228, 211, 0.8);
+  letter-spacing: 0.02em;
 }
 
 .ar-spinner {
@@ -1006,7 +1129,9 @@ main section[id] {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(5, 8, 14, 0.7);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(120, 16, 28, 0.2), rgba(5, 8, 14, 0.82) 62%),
+    rgba(5, 8, 14, 0.78);
   opacity: 0;
   pointer-events: none;
   transition: opacity 280ms ease;
@@ -1020,17 +1145,24 @@ main section[id] {
 
 .dice-dialog {
   width: min(420px, 94vw);
-  padding: 1rem 1rem 1.2rem;
+  padding: 1rem 1rem 1.25rem;
   border-radius: 14px;
-  border: 1px solid rgba(255, 58, 74, 0.44);
-  background: linear-gradient(180deg, rgba(18, 10, 14, 0.96), rgba(9, 7, 12, 0.97));
+  border: 1px solid rgba(255, 76, 82, 0.56);
+  background:
+    radial-gradient(circle at 50% -30%, rgba(173, 28, 45, 0.22), rgba(8, 7, 12, 0.98) 58%),
+    linear-gradient(180deg, rgba(18, 10, 14, 0.98), rgba(9, 7, 12, 0.98));
   text-align: center;
   position: relative;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 28px rgba(181, 34, 47, 0.16);
 }
 
 .dice-dialog p {
-  margin: 0.35rem 0 0.8rem;
+  margin: 0.35rem 0 0.75rem;
+  color: #f0d8cb;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 1.04rem;
+  font-weight: 700;
 }
 
 .dice-close {
@@ -1045,31 +1177,78 @@ main section[id] {
 }
 
 .dice-btn {
-  width: 92px;
-  height: 92px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 80, 96, 0.72);
-  background: linear-gradient(145deg, rgba(39, 17, 24, 0.95), rgba(21, 13, 17, 0.95));
-  color: #fff;
-  font-size: 2rem;
-  font-weight: 700;
+  width: 110px;
+  height: 110px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  color: #fff7e8;
+  font-size: 2.1rem;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 0 18px rgba(255, 42, 61, 0.35);
-  transition: transform 0.15s ease;
+  display: inline-grid;
+  place-items: center;
+  position: relative;
+  clip-path: polygon(50% 0%, 92% 24%, 92% 76%, 50% 100%, 8% 76%, 8% 24%);
+  box-shadow: 0 0 20px rgba(255, 53, 65, 0.32);
+  transition: transform 0.15s ease, filter 0.2s ease;
+  transform-origin: center;
+  will-change: transform, filter;
 }
 
 .dice-btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.06);
+}
+
+.dice-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid rgba(255, 120, 122, 0.8);
+  clip-path: inherit;
+  background:
+    linear-gradient(150deg, rgba(80, 14, 21, 0.96), rgba(24, 8, 13, 0.96));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 215, 188, 0.1),
+    0 0 12px rgba(255, 66, 66, 0.35);
+}
+
+.dice-core {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 45% 35%, rgba(255, 231, 204, 0.16), rgba(14, 10, 15, 0.95) 58%);
+  border: 1px solid rgba(255, 146, 126, 0.56);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.7), 0 0 12px rgba(255, 76, 63, 0.24);
+}
+
+#diceFace {
+  display: inline-block;
+  min-width: 1ch;
+  text-shadow: 0 0 10px rgba(255, 129, 96, 0.6);
 }
 
 .dice-btn.rolling {
-  animation: diceShake 520ms ease;
+  animation: diceRoll 920ms cubic-bezier(0.2, 0.72, 0.14, 1);
+}
+
+.dice-btn.rolling .dice-core {
+  animation: diceCorePulse 920ms ease;
+}
+
+.dice-btn.rolling #diceFace {
+  animation: diceGlyphSpin 920ms ease;
 }
 
 #diceHint {
   margin-top: 0.7rem;
   display: block;
-  color: rgba(221, 211, 217, 0.75);
+  color: rgba(221, 211, 217, 0.8);
+  letter-spacing: 0.02em;
 }
 
 .upside-exit {
@@ -1098,16 +1277,42 @@ body.upside-down .upside-exit {
   transform: translateY(0);
 }
 
-@keyframes diceShake {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(-12deg); }
-  50% { transform: rotate(10deg); }
-  75% { transform: rotate(-7deg); }
-  100% { transform: rotate(0deg); }
+@keyframes diceRoll {
+  0% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+  18% { transform: rotate(-10deg) scale(1.03); filter: brightness(1.08); }
+  36% { transform: rotate(13deg) scale(1.04); filter: brightness(1.12); }
+  54% { transform: rotate(-8deg) scale(1.02); filter: brightness(1.06); }
+  72% { transform: rotate(6deg) scale(1.01); filter: brightness(1.03); }
+  100% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+}
+
+@keyframes diceCorePulse {
+  0%, 100% { box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.7), 0 0 12px rgba(255, 76, 63, 0.24); }
+  35% { box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.72), 0 0 24px rgba(255, 104, 72, 0.46); }
+  65% { box-shadow: inset 0 0 11px rgba(0, 0, 0, 0.71), 0 0 18px rgba(255, 88, 68, 0.38); }
+}
+
+@keyframes diceGlyphSpin {
+  0% { transform: rotateX(0deg) scale(1); opacity: 1; }
+  20% { transform: rotateX(160deg) scale(1.04); opacity: 0.75; }
+  40% { transform: rotateX(320deg) scale(1.08); opacity: 0.88; }
+  60% { transform: rotateX(470deg) scale(1.02); opacity: 0.82; }
+  80% { transform: rotateX(620deg) scale(1.03); opacity: 0.92; }
+  100% { transform: rotateX(720deg) scale(1); opacity: 1; }
 }
 
 @keyframes arSpin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes arHudSweep {
+  from { transform: translateX(-130%); }
+  to { transform: translateX(130%); }
+}
+
+@keyframes arHudAuraPulse {
+  0%, 100% { opacity: 0.56; }
+  50% { opacity: 1; }
 }
 
 @keyframes arRiftPulse {
@@ -1629,8 +1834,13 @@ body.upside-theme::before {
   }
 
   .dice-btn {
-    width: 84px;
-    height: 84px;
+    width: 98px;
+    height: 98px;
+  }
+
+  .dice-core {
+    width: 54px;
+    height: 54px;
   }
 
   #diceHint {

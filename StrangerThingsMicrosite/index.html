@@ -225,13 +225,19 @@
               </span>
               Capture Photo
             </button>
-            <div class="ar-processing" id="arProcessing" aria-hidden="true">
-              <span class="ar-spinner" aria-hidden="true"></span>
-              <strong>Stabilizing portal...</strong>
-              <small>Preparing your Hawkins avatar</small>
+              <div class="ar-processing" id="arProcessing" aria-hidden="true">
+                <span class="ar-spinner" aria-hidden="true"></span>
+                <strong>Stabilizing portal...</strong>
+                <small>Preparing your Hawkins avatar</small>
+                <div class="ar-loader-meter" aria-hidden="true">
+                  <div class="ar-loader-meter-fill" id="arLoaderMeterFill"></div>
+                </div>
+                <div class="ar-loader-percent" id="arLoaderPercent">Dialing Hawkins Lab: 0%</div>
+                <button class="ar-loader-charge" id="arLoaderChargeBtn" type="button">Pulse the lights</button>
+                <div class="ar-loader-tip" id="arLoaderTip">Tip: Pulse the lights while the gate stabilizes.</div>
+              </div>
             </div>
           </div>
-        </div>
       </div>
       <p class="ar-capture-note" id="arCaptureNote">Background and edges are cleaned after capture.</p>
 
@@ -280,11 +286,14 @@
       <div class="dice-overlay" id="diceOverlay" aria-hidden="true">
         <div class="dice-dialog" role="dialog" aria-label="Upside Down Dice">
           <button class="dice-close" id="diceCloseBtn" type="button" aria-label="Close Dice">&times;</button>
-          <p>Tap the dice to roll your fate</p>
+          <p>Roll the Hellfire die to open the gate</p>
           <button class="dice-btn" id="diceBtn" type="button" aria-label="Roll Dice">
-            <span id="diceFace">?</span>
+            <span class="dice-ring" aria-hidden="true"></span>
+            <span class="dice-core">
+              <span id="diceFace">?</span>
+            </span>
           </button>
-          <small id="diceHint">Roll to enter the Upside Down</small>
+          <small id="diceHint">Only a true roll opens the Upside Down</small>
         </div>
       </div>
     </section>

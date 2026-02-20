@@ -1873,6 +1873,10 @@ body.upside-theme::before {
   z-index: 2;
 }
 
+#upside-down .upside-game {
+  justify-content: center;
+}
+
 #upside-down > p {
   color: rgba(241, 230, 222, 0.9);
 }
@@ -1880,12 +1884,25 @@ body.upside-theme::before {
 #upsideEnterBtn {
   color: #fff;
   background: linear-gradient(140deg, #ff3847, #b80c17);
-  box-shadow: 0 10px 20px rgba(183, 9, 20, 0.35);
+  border: 1px solid rgba(255, 192, 198, 0.28);
+  box-shadow:
+    0 10px 20px rgba(183, 9, 20, 0.35);
   opacity: 1;
 }
 
 #upsideEnterBtn:hover {
   filter: brightness(1.05);
+}
+
+body.portal-blue #upsideEnterBtn {
+  background: linear-gradient(140deg, #3182ff, #1b3f8a);
+  box-shadow: 0 10px 20px rgba(45, 120, 230, 0.35);
+}
+
+body.upside-theme #upsideEnterBtn,
+body.upside-down #upsideEnterBtn {
+  background: linear-gradient(140deg, #3182ff, #1b3f8a);
+  box-shadow: 0 10px 20px rgba(45, 120, 230, 0.35);
 }
 
 #upside-down::before {

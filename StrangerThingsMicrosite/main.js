@@ -212,6 +212,41 @@ function animateParallax() {
   requestAnimationFrame(animateParallax);
 }
 
+function initSingleFingerDoubleTapGuard() {
+  if (!mobileOrTouch) return;
+
+  let lastTouchEndTs = 0;
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  document.addEventListener('touchstart', (event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (event) => {
+    // Keep native pinch zoom behavior (2+ fingers).
+    if (event.changedTouches.length !== 1) return;
+    if (event.touches.length > 0) return;
+
+    const touch = event.changedTouches[0];
+    const moveX = Math.abs((touch?.clientX || 0) - touchStartX);
+    const moveY = Math.abs((touch?.clientY || 0) - touchStartY);
+    const movedTooMuch = moveX > 24 || moveY > 24;
+    if (movedTooMuch) return;
+
+    const now = Date.now();
+    const delta = now - lastTouchEndTs;
+    if (delta > 0 && delta < 320) {
+      event.preventDefault();
+    }
+    lastTouchEndTs = now;
+  }, { passive: false });
+}
+initSingleFingerDoubleTapGuard();
+
 openButtons.forEach((button) => button.addEventListener('click', openTrailer));
 closeButtons.forEach((button) => button.addEventListener('click', closeTrailer));
 navLinks.forEach((link) => {

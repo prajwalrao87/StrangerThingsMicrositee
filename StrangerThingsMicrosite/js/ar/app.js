@@ -275,10 +275,10 @@ export function initArExperience() {
   let audioPrimed = false;
   let loadingAudioRequested = false;
   const AR_LOADING_TIPS = [
-    'Tip: Tap boost while we blend your avatar.',
-    'Tip: Better front lighting gives cleaner edges.',
-    'Tip: Keep your face centered for sharper swaps.',
-    'Tip: Reblend with another scene after this result.'
+    'Tip: Pulse the lights while the gate stabilizes.',
+    'Tip: Front lighting helps us lock your face faster.',
+    'Tip: Stay centered, eyes open, and hold still.',
+    'Tip: After this, try reblending into another Hawkins scene.'
   ];
   const loadingAudio = document.createElement('audio');
   loadingAudio.preload = 'auto';
@@ -408,10 +408,11 @@ export function initArExperience() {
   const setLoaderPercent = (value) => {
     loaderPercentValue = Math.max(0, Math.min(100, Math.round(value)));
     if (arLoaderMeterFill) arLoaderMeterFill.style.width = `${loaderPercentValue}%`;
+
     if (arLoaderPercent) {
       arLoaderPercent.textContent = loaderPercentValue >= 100
-        ? 'Portal stabilized: 100%'
-        : `Stabilizing portal: ${loaderPercentValue}%`;
+        ? 'Gate stabilized: 100%'
+        : `Dialing Hawkins Lab: ${loaderPercentValue}%`;
     }
   };
 
@@ -419,7 +420,7 @@ export function initArExperience() {
     clearLoaderTimers();
     loaderBoostEnergy = 0;
     loaderTipIndex = Math.floor(Math.random() * AR_LOADING_TIPS.length);
-    setLoaderPercent(6 + Math.random() * 7);
+    setLoaderPercent(0);
 
     if (arLoaderTip) {
       arLoaderTip.textContent = AR_LOADING_TIPS[loaderTipIndex];
@@ -454,7 +455,7 @@ export function initArExperience() {
     arLoaderChargeBtn.addEventListener('click', () => {
       loaderBoostEnergy = Math.min(12, loaderBoostEnergy + 2.2);
       if (arLoaderTip) {
-        arLoaderTip.textContent = 'Boost accepted. Holding portal open...';
+        arLoaderTip.textContent = 'Signal boosted. Holding the gate...';
       }
       setLoaderPercent(Math.min(95, loaderPercentValue + 1.4));
     });

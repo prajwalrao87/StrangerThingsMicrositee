@@ -951,7 +951,7 @@ main section[id] {
   justify-items: center;
   gap: 0.55rem;
   background:
-    radial-gradient(circle at 50% 40%, rgba(95, 14, 27, 0.4), rgba(0, 0, 0, 0.96) 62%),
+    radial-gradient(circle at 50% 36%, rgba(145, 22, 38, 0.5), rgba(0, 0, 0, 0.97) 62%),
     #000;
   border-radius: 8px;
   opacity: 0;
@@ -968,32 +968,93 @@ main section[id] {
 
 .ar-processing strong {
   font-size: clamp(1.25rem, 2.2vw, 2rem);
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 0 14px rgba(185, 27, 42, 0.38);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffe7d2;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(185, 27, 42, 0.58);
 }
 
 .ar-processing small {
   font-size: clamp(0.95rem, 1.35vw, 1.2rem);
-  color: rgba(218, 215, 209, 0.8);
+  color: rgba(237, 224, 205, 0.85);
+  letter-spacing: 0.03em;
 }
 
 .ar-loader-meter {
   width: min(300px, 76vw);
-  height: 10px;
-  border-radius: 999px;
+  height: 14px;
+  border-radius: 3px;
   overflow: hidden;
-  border: 1px solid rgba(255, 122, 131, 0.45);
-  background: rgba(38, 6, 11, 0.88);
-  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 150, 120, 0.62);
+  position: relative;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 213, 178, 0.09) 0,
+      rgba(255, 213, 178, 0.09) 10px,
+      rgba(0, 0, 0, 0) 10px,
+      rgba(0, 0, 0, 0) 14px
+    ),
+    rgba(30, 6, 10, 0.9);
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.75),
+    inset 0 0 0 1px rgba(255, 191, 150, 0.08),
+    0 0 0 1px rgba(255, 130, 110, 0.25),
+    0 0 16px rgba(255, 90, 90, 0.2),
+    0 0 34px rgba(255, 76, 76, 0.16);
+  transform: skewX(-14deg);
+}
+
+.ar-loader-meter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 242, 227, 0.42) 48%, rgba(255, 255, 255, 0) 100%);
+  transform: translateX(-120%);
+  animation: arHudSweep 2.2s linear infinite;
+}
+
+.ar-loader-meter::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  border-radius: 3px;
+  box-shadow: 0 0 18px rgba(255, 90, 85, 0.28), 0 0 38px rgba(255, 75, 60, 0.2);
+  animation: arHudAuraPulse 1.8s ease-in-out infinite;
 }
 
 .ar-loader-meter-fill {
   width: 0%;
   height: 100%;
-  background: linear-gradient(90deg, #ff5c6d 0%, #ffb36d 58%, #ffe19e 100%);
-  box-shadow: 0 0 14px rgba(255, 114, 122, 0.65);
-  transition: width 260ms linear;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 40%),
+    linear-gradient(90deg, #ff3e5a 0%, #ff6a4b 38%, #ffa653 72%, #ffd08f 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 233, 194, 0.22),
+    0 0 14px rgba(255, 97, 97, 0.65),
+    0 0 30px rgba(255, 118, 88, 0.45);
+  transform-origin: left center;
+  transition: width 220ms ease-out;
+  filter: saturate(1.12) contrast(1.04);
+  position: relative;
+}
+
+.ar-loader-meter-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    120deg,
+    rgba(255, 243, 220, 0.2) 0,
+    rgba(255, 243, 220, 0.2) 6px,
+    rgba(255, 243, 220, 0) 6px,
+    rgba(255, 243, 220, 0) 12px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.75;
 }
 
 .ar-loader-percent {
@@ -1006,17 +1067,24 @@ main section[id] {
 
 .ar-loader-charge {
   margin-top: 0.2rem;
-  border: 1px solid rgba(255, 134, 143, 0.62);
+  border: 1px solid rgba(255, 159, 99, 0.72);
   border-radius: 999px;
-  background: linear-gradient(150deg, rgba(88, 13, 24, 0.96), rgba(42, 6, 12, 0.96));
-  color: #ffd8b1;
+  background: linear-gradient(155deg, rgba(120, 20, 22, 0.98), rgba(62, 8, 10, 0.98));
+  color: #ffe7c4;
   font-family: "Rajdhani", sans-serif;
   font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding: 0.36rem 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.42rem 1.06rem;
   cursor: pointer;
-  box-shadow: 0 0 16px rgba(226, 68, 81, 0.28);
+  box-shadow: 0 0 16px rgba(226, 68, 81, 0.4), inset 0 0 0 1px rgba(255, 223, 180, 0.08);
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+}
+
+.ar-loader-charge:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 20px rgba(255, 91, 73, 0.52), inset 0 0 0 1px rgba(255, 223, 180, 0.12);
 }
 
 .ar-loader-charge:active {
@@ -1028,7 +1096,8 @@ main section[id] {
   text-align: center;
   font-size: 0.82rem;
   line-height: 1.35;
-  color: rgba(231, 223, 207, 0.78);
+  color: rgba(244, 228, 211, 0.8);
+  letter-spacing: 0.02em;
 }
 
 .ar-spinner {
@@ -1162,6 +1231,16 @@ body.upside-down .upside-exit {
 
 @keyframes arSpin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes arHudSweep {
+  from { transform: translateX(-130%); }
+  to { transform: translateX(130%); }
+}
+
+@keyframes arHudAuraPulse {
+  0%, 100% { opacity: 0.56; }
+  50% { opacity: 1; }
 }
 
 @keyframes arRiftPulse {
